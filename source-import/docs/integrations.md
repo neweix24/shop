@@ -18,7 +18,7 @@ The additive Shop commerce foundation is installed in the active Neweix Supabase
 
 Tables include products, variants, inventory, customer addresses, orders, order items, payment attempts, delivery jobs, order events, and returns. All tables have RLS enabled. Public users can read active catalog rows; authenticated users can read only their own addresses, orders, order items, order events, and returns. There are no client-side write policies. Inventory, payment, delivery and order mutations are server-only.
 
-The database is an additive foundation, not a completed commerce backend. There are no order-creation, stock-reservation, refund, return-approval, or staff administration mutation APIs yet.
+The database is an additive commerce foundation. Guest checkout is supported without login using name, Bangladesh phone, and delivery address. Guest order tracking requires the Order UUID plus the same phone number. The server-side COD RPC validates live product variants and stock, locks inventory rows, reserves stock atomically, records immutable item snapshots, and creates a manual-delivery-review order. Account-linked order history is separately protected by RLS. Refund, return-approval, and staff administration mutation APIs are not yet available. The current public catalog is empty; the preview's hard-coded sample catalog is not yet synchronized to Shop's database, so the frontend intentionally does not submit demo product IDs as real orders.
 
 ## Shop API status
 
@@ -26,7 +26,8 @@ The Supabase Edge Function `shop-api` is deployed and its `GET /health` endpoint
 
 - `GET /products`: active product catalogue read.
 - `GET /orders`: requires an Account-issued Supabase access token and uses RLS for owner-scoped order reads.
-- `POST /checkout`: deliberately returns HTTP 503 with `EIXON_INTEGRATION_UNAVAILABLE` until Eixon's approved Shop payment contract is live.
+- `POST /checkout`: accepts guest Cash on Delivery only and calls the atomic order RPC. Other methods return HTTP 503 until their respective contracts and approvals are active.
+- `POST /track`: guest tracking requires both the Order UUID and checkout phone; attempts are rate-limited in the database.
 
 The function has platform JWT verification disabled only because it performs explicit user-token validation for protected routes while exposing public catalogue and health routes. Do not remove the explicit `auth.getUser(token)` check or rely on unverified JWT claims.
 
@@ -34,7 +35,7 @@ The function has platform JWT verification disabled only because it performs exp
 
 Eixon is the only approved Shop checkout payment route. Eixon owns all wallet balances and financial records. Shop must not offer Cash on Delivery, bKash, Nagad, Rocket, card gateways, or any alternative checkout route under the current policy.
 
-The Eixon Supabase project is currently inactive and no approved Shop payment API/client credentials or signed webhook contract have been verified. Consequently Shop checkout must remain disabled. Do not mark orders paid from a redirect or browser response. Enable checkout only after Eixon is restored, the Shop API contract and credentials are approved, signed webhook verification and idempotency are implemented, and end-to-end payment/reconciliation tests pass.
+The Eixon Supabase project is currently inactive and no approved Shop payment API/client credentials or signed webhook contract have been verified. Eixon Wallet checkout therefore remains disabled. COD guest orders are created with `due_on_delivery` and `manual_review`; no online payment is claimed. bKash, Nagad, and card checkout remain disabled until provider/legal approvals, credentials, signed webhooks, and end-to-end reconciliation tests are complete. Do not mark online payments paid from a browser redirect.
 
 ## Pathao and notifications
 
