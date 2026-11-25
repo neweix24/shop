@@ -87,10 +87,10 @@ declare global {
 }
 
 function loadMapScript() {
-  const config = window.__MANUS_CONFIG__;
-  if (!config?.apiUrl || !config.apiBrowserKey) return Promise.reject(new Error("Maps is not configured"));
-  const API_KEY = encodeURIComponent(config.apiBrowserKey);
-  const MAPS_PROXY_URL = `${config.apiUrl.replace(/\/$/, "")}/v1/maps/proxy`;
+  const apiKey = (import.meta as ImportMeta & { env: { VITE_GOOGLE_MAPS_API_KEY?: string } }).env.VITE_GOOGLE_MAPS_API_KEY;
+  if (!apiKey) return Promise.reject(new Error("Google Maps is not configured for this deployment"));
+  const API_KEY = encodeURIComponent(apiKey);
+  const MAPS_PROXY_URL = "https://maps.googleapis.com";
   return new Promise(resolve => {
     const script = document.createElement("script");
     script.src = `${MAPS_PROXY_URL}/maps/api/js?key=${API_KEY}&v=weekly&libraries=marker,places,geocoding,geometry`;
