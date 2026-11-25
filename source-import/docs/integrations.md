@@ -1,37 +1,49 @@
 # Production integration contract
 
-## Identity: Neweix Account
+## Ownership and boundaries
 
-Account is the sole customer identity provider. Shop must use the approved first-party OAuth 2.1/OIDC authorization-code flow with PKCE after Account enables its OAuth server and explicitly registers the Shop client and exact redirect URIs. Validate issuer, audience, signature, expiry, nonce/state, and PKCE. Use short-lived access tokens and revocable, rotated refresh tokens. Never use Manus OAuth, social login, a Shop-local password store, or client-supplied roles. Account currently documents this architecture; enabling the OAuth server and registering Shop remain external prerequisites.
+Shop is the customer-facing online store and owns its catalog, cart, orders, inventory, delivery, returns, support, and sales reporting. Account owns identity credentials and sessions. Eixon owns EIX, wallets, balances, financial ledger, payment lifecycle, settlement, and reconciliation. Supreme retains highest governance authority. Neweix provides ecosystem navigation and service coordination.
 
-The Shop server maps the verified Account subject to its own customer record. Shop owns commerce authorization and customer order data; Account owns credentials and canonical identity.
+Shop must not write to Account or Eixon private data, maintain a shadow EIX ledger, or create wallet-transfer endpoints. Do not introduce the cancelled Developer Marketplace, Developer Portal, developer billing, or plugin publishing program.
 
-## Payments: Eixon only
+## Account authentication
 
-Eixon owns EIX, wallet balances, the financial ledger, payment lifecycle, settlement, and reconciliation. Shop must not create a shadow wallet, balance, token ledger, or wallet-transfer endpoint. Shop checkout must not offer Cash on Delivery, bKash, Nagad, Rocket, card gateways, or alternate payment methods under the current approved policy.
+The Account repository documents Supabase Auth as the credential/session authority and the first-party OAuth 2.1/OIDC authorization-code flow with PKCE. Its project-level OAuth server and client registration are not enabled/verified yet: the active project's `auth.oauth_clients` table currently has no registered clients.
 
-Implement a server-to-server Eixon Shop payment contract only after Eixon publishes and approves its API, client registration, scopes, webhook signature scheme, idempotency requirements, and refund/void semantics. A browser redirect is never proof of payment. Persist Shop payment attempts with Eixon references, verify signed callbacks or server-side status lookups, and reconcile idempotently. Until the contract and credentials are verified, checkout must remain unavailable and must not create a confirmed order.
+The Shop source still contains legacy Manus OAuth/session code. It must not be treated as Neweix Account authentication. Replace it only after Account's OAuth server is enabled, the exact Shop redirect URI is registered, the issuer/audience/JWKS contract is verified, and end-to-end PKCE tests pass. Never map Manus `openId` to Account UUID by guesswork. Do not accept client-supplied roles.
 
-Direct online payment methods used to load EIX belong to Eixon, not Shop.
+## Shop database
 
-## Delivery: Pathao
+The additive Shop commerce foundation is installed in the active Neweix Supabase project `grhybvlhdnzlopwbaqun` under the `public.shop_*` tables. The migration source is in `supabase/migrations/`.
 
-Create a server adapter that receives a validated address, selected dispatch origin, and parcel facts. Request a live quote only after official administrative geography and Pathao coverage are verified. Persist provider request/response, quote expiry, and provider reference on the server. If coverage is unsupported or the provider is unavailable, return an explicit manual-review state. Never fabricate a delivery quote or expose provider credentials to the browser.
+Tables include products, variants, inventory, customer addresses, orders, order items, payment attempts, delivery jobs, order events, and returns. All tables have RLS enabled. Public users can read active catalog rows; authenticated users can read only their own addresses, orders, order items, order events, and returns. There are no client-side write policies. Inventory, payment, delivery and order mutations are server-only.
 
-## Notifications
+The database is an additive foundation, not a completed commerce backend. There are no order-creation, stock-reservation, refund, return-approval, or staff administration mutation APIs yet.
 
-Order and delivery notifications use the approved Neweix Connect/notification contract. Do not build an independent identity or messaging system inside Shop. If the provider contract is unavailable, record a retryable outbox event and report delivery as pending.
+## Shop API status
 
-## Commerce data ownership
+The Supabase Edge Function `shop-api` is deployed and its `GET /health` endpoint was tested successfully.
 
-Shop owns catalog, product variants, cart, checkout, orders, order items, inventory, dispatch, returns, reviews, support, and sales reporting. These records require durable server-side storage, authenticated customer ownership checks, staff permission checks, idempotency, and audit events. Other services must not write directly to Shop's private database.
+- `GET /products`: active product catalogue read.
+- `GET /orders`: requires an Account-issued Supabase access token and uses RLS for owner-scoped order reads.
+- `POST /checkout`: deliberately returns HTTP 503 with `EIXON_INTEGRATION_UNAVAILABLE` until Eixon's approved Shop payment contract is live.
 
-Recommended additive tables: products, product_variants, inventory_events, carts, cart_items, customer_addresses, orders, order_items, payment_attempts, delivery_quotes, returns, reviews, consents, outbox_events, and audit_events. Review and version all migrations before applying them to production. Seed operations must be idempotent and must not overwrite customer data.
+The function has platform JWT verification disabled only because it performs explicit user-token validation for protected routes while exposing public catalogue and health routes. Do not remove the explicit `auth.getUser(token)` check or rely on unverified JWT claims.
 
-## Supreme governance and Neweix coordination
+## Eixon payment boundary
 
-Supreme remains the highest authority for reserved policy and high-impact approvals. Neweix provides central navigation, service directory, and administration coordination. Shop exposes narrowly scoped, auditable service APIs; it must not expose Supreme secrets or let Admin override reserved Supreme decisions.
+Eixon is the only approved Shop checkout payment route. Eixon owns all wallet balances and financial records. Shop must not offer Cash on Delivery, bKash, Nagad, Rocket, card gateways, or any alternative checkout route under the current policy.
 
-## Release gate
+The Eixon Supabase project is currently inactive and no approved Shop payment API/client credentials or signed webhook contract have been verified. Consequently Shop checkout must remain disabled. Do not mark orders paid from a redirect or browser response. Enable checkout only after Eixon is restored, the Shop API contract and credentials are approved, signed webhook verification and idempotency are implemented, and end-to-end payment/reconciliation tests pass.
 
-Do not deploy until Account SSO, durable Shop commerce APIs/database, Eixon payment verification, Pathao/manual-delivery rules, notifications, monitoring, backups, and production smoke tests are implemented and integration-tested. Missing credentials or unavailable providers must disable the corresponding action, not trigger a simulated success.
+## Pathao and notifications
+
+Pathao credentials, coverage, quote, booking and tracking APIs have not been verified. Do not fabricate delivery rates or coverage. Implement a server-side adapter after official credentials and geography mappings are available. Until then delivery must be explicitly marked manual review.
+
+Notifications must use the approved Neweix Connect/notification service contract. No live notification provider is configured in this Shop deployment.
+
+## Deployment and release gate
+
+The Cloudflare Worker previously returned HTTP 503 and had no production bindings. Do not replace it with a storefront until the frontend and server API are connected, Account SSO is tested, Eixon payment verification is live, Pathao/manual delivery is defined, migrations are reproducible, monitoring/backups are configured, and production smoke tests pass.
+
+A green frontend build or a healthy read-only API does not mean the Shop is production-ready.
