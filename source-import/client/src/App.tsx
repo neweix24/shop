@@ -92,7 +92,7 @@ function useStoreState() {
       window.removeEventListener("storage", handler);
     };
   }, []);
-  return { cart: getCart(), wishlist: getWishlist() };
+  return { cart: getCart().filter(item => products.some(product => product.id === item.productId)), wishlist: getWishlist() };
 }
 
 function Logo() {
@@ -1130,14 +1130,14 @@ function CheckoutPage({ onNotify }: { onNotify: (message: string) => void }) {
       setError(unavailable[paymentMethod] ?? "This payment method is not available.");
       return;
     }
-    const validItems = cart.map(item => {
+    const validItems = cart.flatMap(item => {
       const product = products.find(entry => entry.id === item.productId);
       const variant = product?.variants.find(entry => entry.id === item.variantId);
       return variant && variant.stock >= item.quantity
-        ? { variantId: variant.id, quantity: item.quantity }
-        : null;
+        ? [{ variantId: variant.id, quantity: item.quantity }]
+        : [];
     });
-    if (!validItems.length || validItems.some(item => item === null)) {
+    if (!validItems.length || validItems.length !== cart.length) {
       setError("Your bag contains an unavailable product or quantity. Refresh the catalog and update your bag.");
       return;
     }
