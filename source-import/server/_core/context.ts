@@ -3,6 +3,8 @@ import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
 export type ShopPrincipal = {
   id: string;
   role: "customer" | "staff" | "admin";
+  name?: string | null;
+  email?: string | null;
 };
 
 export type TrpcContext = {
