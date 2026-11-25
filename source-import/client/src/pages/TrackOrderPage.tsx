@@ -36,7 +36,7 @@ export default function TrackOrderPage() {
   }
 
   return (
-    <main className="content-width page-content">
+    <main className="content-width">
       <section className="page-heading">
         <span className="eyebrow">Guest order lookup</span>
         <h1>Track your order</h1>
@@ -75,7 +75,7 @@ export default function TrackOrderPage() {
         <section className="order-detail-layout" aria-live="polite">
           <div className="order-status-card">
             <span className="eyebrow">{order.order.order_number}</span>
-            <h2>{order.order.status.replaceAll("_", " ")}</h2>
+            <h2>{order.order.status.replace(/_/g, " ")}</h2>
             <p>Placed {new Date(order.order.created_at).toLocaleString("en-BD")}</p>
             <div className="tracking-steps">
               {order.items.map((item, index) => (
@@ -87,7 +87,7 @@ export default function TrackOrderPage() {
                 </div>
               ))}
             </div>
-            <p>Delivery status: {order.delivery.status.replaceAll("_", " ")}</p>
+            <p>Delivery status: {order.delivery.status.replace(/_/g, " ")}</p>
             {order.delivery.tracking_url && (
               <a className="text-link" href={order.delivery.tracking_url} target="_blank" rel="noreferrer">
                 Open delivery tracking
