@@ -1,6 +1,5 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { startLogin } from "@/const";
 import { useAuth } from "@/_core/hooks/useAuth";
 import {
   bangladeshAreas,
@@ -1393,15 +1392,9 @@ function AuthPage({ mode }: { mode: "signin" | "signup" | "forgot" }) {
   const [email, setEmail] = useState("");
   const authStatus = getSupabaseBrowserStatus();
   const launch = () => {
-    try {
-      startLogin();
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "Secure login is not configured in this environment."
-      );
-    }
+    setMessage(
+      "Neweix Account single sign-on is not connected to Shop yet. Guest checkout remains available without login; Eixon Wallet requires Account authentication."
+    );
   };
   if (mode === "forgot")
     return (
@@ -1441,7 +1434,7 @@ function AuthPage({ mode }: { mode: "signin" | "signup" | "forgot" }) {
     <PageFrame
       eyebrow="Account access"
       title={mode === "signup" ? "Make the edit yours" : "Welcome back"}
-      intro="Keep your saved objects, order requests, and delivery details in one place."
+      intro="Guest checkout does not require an account. Account sign-in will be available after secure Neweix SSO is connected."
     >
       <div className="auth-card">
         <div className="auth-provider">
@@ -1449,8 +1442,7 @@ function AuthPage({ mode }: { mode: "signin" | "signup" | "forgot" }) {
           <div>
             <strong>Continue with secure account login</strong>
             <p>
-              Google and OAuth persistence are handled server-side by the
-              configured provider.
+              Neweix Account is the approved identity provider. Shop sign-in will activate after the first-party SSO client is registered and verified.
             </p>
           </div>
         </div>
@@ -1506,7 +1498,7 @@ function AccountPage({
       >
         <EmptyState
           title="You are not signed in"
-          body="Use secure account login to access personal settings. Your wishlist and bag still work without an account."
+          body="Neweix Account SSO is not connected yet. You can still browse and place guest orders without signing in."
           action={
             <Link className="button button-dark" href="/signin">
               Sign in securely <ArrowRight size={15} />
