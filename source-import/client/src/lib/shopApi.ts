@@ -92,7 +92,7 @@ export async function fetchCatalog() {
         label: variant.title,
         stock: Math.max(0, variant.stock ?? 0),
         price: Number(variant.unit_price_minor) / 100,
-      }))
+      }));
     if (!variants.length) return [];
     const image = product.image_url || PRODUCT_PLACEHOLDER;
     return [{
