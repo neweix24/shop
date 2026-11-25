@@ -9,13 +9,9 @@ This repository has a guarded GitHub Actions workflow for importing the supplied
 3. Select the original `code.zip` from the phone and upload it to the repository root with the exact name `code.zip`.
 4. Commit only that archive upload to `feat/neweix-storefront-integration`. Do not upload any extracted files or secrets.
 
-## Run the importer
+## Automatic import
 
-1. Open the repository's **Actions** tab.
-2. Select **Import uploaded storefront archive**.
-3. Choose **Run workflow**.
-4. Keep the branch as `feat/neweix-storefront-integration`, archive path as `code.zip`, and destination as `.`.
-5. Run the workflow.
+After the `code.zip` upload is committed to `feat/neweix-storefront-integration`, the **Import uploaded storefront archive** workflow starts automatically. It safely extracts the source, then commits the extracted files to the same branch. The workflow also removes the uploaded ZIP from the repository. A second harmless run caused by ZIP deletion detects that no archive remains and skips.
 
 The workflow:
 - validates ZIP paths to prevent path traversal;
