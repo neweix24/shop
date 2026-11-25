@@ -1,0 +1,41 @@
+name: Import Shop ZIP source
+on:
+  workflow_dispatch:
+  push:
+    branches: [neweix24-patch-1]
+    paths: [code.zip]
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: neweix24-patch-1
+          fetch-depth: 0
+      - name: Extract source safely
+        run: |
+          set -euo pipefail
+          test -s code.zip
+          mkdir -p /tmp/shopzip source-import
+          unzip -q code.zip -d /tmp/shopzip
+          rsync -a --delete --exclude='.git/' --exclude='node_modules/' --exclude='dist/' --exclude='build/' --exclude='.manus-logs/' --exclude='.env' --exclude='.env.*' --exclude='!.env.example' --exclude='*.zip' --exclude='*.tar.gz' --exclude='*.bak' --exclude='debug-collector.js' /tmp/shopzip/ source-import/
+          test -f source-import/package.json
+      - name: Commit extracted project
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add source-import
+          if ! git diff --cached --quiet; then
+            git commit -m 'Import storefront source from uploaded ZIP'
+            git push origin HEAD:neweix24-patch-1
+          fi
+      - name: Install and run checks
+        working-directory: source-import
+        run: |
+          set -euo pipefail
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          for task in typecheck check lint test build; do
+            npm run "$task" --if-present
+          done
