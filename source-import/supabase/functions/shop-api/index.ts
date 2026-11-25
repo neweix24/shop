@@ -20,7 +20,7 @@ const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const url = new URL(request.url);
-  const path = url.pathname.replace(/^\\/shop-api/, "") || "/";
+  const path = url.pathname.startsWith("/shop-api") ? (url.pathname.slice(9) || "/") : url.pathname;
 
   if (request.method === "GET" && path === "/health") {
     return json({ service: "shop-api", status: "ok", capabilities: ["catalog-read", "customer-order-read"], checkout: "disabled-until-eixon-contract" });
