@@ -1079,7 +1079,7 @@ function CheckoutPage({ onNotify }: { onNotify: (message: string) => void }) {
     line1: "",
     note: "",
   });
-  const [paymentMethod, setPaymentMethod] = useState("Cash on Delivery");
+  const [paymentMethod] = useState("Eixon");
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const subtotal = cartSubtotal(
@@ -1111,23 +1111,12 @@ function CheckoutPage({ onNotify }: { onNotify: (message: string) => void }) {
       );
       return;
     }
-    const order: OrderRequest = {
-      id: makeOrderId(),
-      createdAt: new Date().toISOString(),
-      items: cart,
-      address,
-      paymentMethod,
-      subtotal,
-      deliveryStatus: "manual-review",
-      paymentStatus:
-        paymentMethod === "Cash on Delivery"
-          ? "not-started"
-          : "awaiting-verification",
-      note: "Saved as an order request in this browser. Production persistence, delivery quote, and provider verification require configured server integrations.",
-    };
-    saveOrderRequest(order);
-    setSubmitted(true);
-    setTimeout(() => setLocation(`/orders/${order.id}`), 600);
+    // Fail closed until Eixon's approved Shop payment contract and the
+    // durable Shop order API are configured. A browser-only request is not an order.
+    setError(
+      "Checkout is unavailable until Eixon payment verification and the secure Shop order service are connected."
+    );
+    return;
   };
   if (!cart.length)
     return (
@@ -1232,29 +1221,16 @@ function CheckoutPage({ onNotify }: { onNotify: (message: string) => void }) {
               </div>
             </div>
             <div className="payment-options">
-              {["Cash on Delivery", "bKash", "Nagad", "Rocket"].map(method => (
-                <label
-                  className={`payment-option ${paymentMethod === method ? "active" : ""}`}
-                  key={method}
-                >
-                  <input
-                    type="radio"
-                    name="payment"
-                    value={method}
-                    checked={paymentMethod === method}
-                    onChange={event => setPaymentMethod(event.target.value)}
-                  />
-                  <span>
-                    <strong>{method}</strong>
-                    <small>
-                      {method === "Cash on Delivery"
-                        ? "Pay when the order is delivered."
-                        : "Provider handoff will require verification."}
-                    </small>
-                  </span>
-                  <span className="radio-dot" />
-                </label>
-              ))}
+              <div className="payment-option active" aria-current="true">
+                <span>
+                  <strong>Eixon</strong>
+                  <small>
+                    The only approved Shop payment route. Checkout stays
+                    unavailable until the Eixon contract is connected.
+                  </small>
+                </span>
+                <span className="radio-dot" />
+              </div>
             </div>
             <div className="payment-note">
               <LockKeyhole size={15} />
@@ -1608,7 +1584,7 @@ function AccountPage({
             <span className="eyebrow">Wallet methods</span>
             <h2>Payment methods, not membership.</h2>
             <p className="panel-copy">
-              Connect MFS, Card, or Eixon only through a verified server-side
+              Connect Eixon only through a verified server-side
               provider. Neweix+ membership is separate.
             </p>
             <div className="wallet-methods">
@@ -1815,7 +1791,7 @@ function ContentPage({
             ],
             [
               "What payment methods do you support?",
-              "Cash on Delivery, bKash, Nagad, and Rocket can be configured. A payment is never called successful until the provider confirms it.",
+              "Eixon is the only approved Shop payment route. Payment is never called successful until Eixon confirms it server-side.",
             ],
             [
               "Do you deliver outside Dhaka?",
@@ -1908,7 +1884,7 @@ function ContentPage({
           </div>
           <h2>Bring your preferred method.</h2>
           <p>
-            Wallet methods may include MFS, Card, and Eixon where the
+            Eixon is the approved Neweix ecosystem payment route. The
             appropriate verified provider is connected. Nothing here pretends to
             be a financial balance.
           </p>
