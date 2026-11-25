@@ -55,5 +55,5 @@ jobs:
         with:
           deno-version: v2.x
       - name: Type-check Shop Edge Function
-        working-directory: source-import
-        run: deno check supabase/functions/shop-api/index.ts
+        working-directory: source-import/supabase/functions/shop-api
+        run: deno check index.ts
