@@ -30,7 +30,7 @@ Deno.serve(async (request: Request) => {
     const client = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: products, error } = await client
       .from("shop_products")
-      .select("id,slug,title,description,currency,shop_product_variants(id,sku,title,unit_price_minor,currency,is_active)")
+      .select("id,slug,title,description,currency,shop_product_variants(id,sku,title,unit_price_minor,is_active)")
       .eq("status", "active")
       .order("created_at", { ascending: false });
     if (error) return json({ error: "Catalog is temporarily unavailable." }, 503);
