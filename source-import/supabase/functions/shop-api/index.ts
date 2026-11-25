@@ -85,14 +85,44 @@ Deno.serve(async (request: Request) => {
   }
 
   if (request.method === "GET" && path === "/products") {
-    const client = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const { data: products, error } = await client
-      .from("shop_products")
-      .select("id,slug,title,description,currency,shop_product_variants(id,sku,title,unit_price_minor,is_active)")
-      .eq("status", "active")
-      .order("created_at", { ascending: false });
-    if (error) return json({ error: "Catalog is temporarily unavailable." }, 503);
-    return json({ products: products ?? [] });
+    try {
+      const client = serviceClient();
+      const { data: rows, error } = await client
+        .from("shop_products")
+        .select("id,slug,title,description,category,image_url,is_featured,currency,shop_product_variants(id,sku,title,unit_price_minor,is_active,shop_inventory(quantity_on_hand,quantity_reserved))")
+        .eq("status", "active")
+        .order("created_at", { ascending: false });
+      if (error) return json({ error: "Catalog is temporarily unavailable." }, 503);
+      const products = (rows ?? []).map(product => ({
+        id: product.id,
+        slug: product.slug,
+        title: product.title,
+        description: product.description,
+        category: product.category,
+        image_url: product.image_url,
+        is_featured: product.is_featured,
+        currency: product.currency,
+        shop_product_variants: (product.shop_product_variants ?? [])
+          .filter(variant => variant.is_active)
+          .map(variant => {
+            const inventory = Array.isArray(variant.shop_inventory)
+              ? variant.shop_inventory[0]
+              : variant.shop_inventory;
+            return {
+              id: variant.id,
+              title: variant.title,
+              unit_price_minor: variant.unit_price_minor,
+              is_active: true,
+              stock: inventory
+                ? Math.max(0, inventory.quantity_on_hand - inventory.quantity_reserved)
+                : 0,
+            };
+          }),
+      }));
+      return json({ products });
+    } catch {
+      return json({ error: "Catalog is temporarily unavailable." }, 503);
+    }
   }
 
   if (request.method === "GET" && path === "/orders") {
