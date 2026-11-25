@@ -1078,7 +1078,7 @@ function CheckoutPage({ onNotify }: { onNotify: (message: string) => void }) {
     line1: "",
     note: "",
   });
-  const [paymentMethod] = useState("Eixon");
+  const [paymentMethod, setPaymentMethod] = useState("cod");
   const [error, setError] = useState("");
   const [submitted] = useState(false);
   const subtotal = cartSubtotal(
@@ -1110,10 +1110,21 @@ function CheckoutPage({ onNotify }: { onNotify: (message: string) => void }) {
       );
       return;
     }
-    // Fail closed until Eixon's approved Shop payment contract and the
-    // durable Shop order API are configured. A browser-only request is not an order.
+    if (paymentMethod !== "cod") {
+      const unavailable: Record<string, string> = {
+        eixon_wallet: "Eixon Wallet requires Neweix Account authentication and an active, approved Eixon Shop payment contract.",
+        bkash: "bKash checkout is disabled until gateway credentials, webhook verification and legal approval are complete.",
+        nagad: "Nagad checkout is disabled until gateway credentials, webhook verification and legal approval are complete.",
+        card: "Card checkout is disabled until a compliant card gateway and legal approval are complete.",
+      };
+      setError(unavailable[paymentMethod] ?? "This payment method is not available.");
+      return;
+    }
+    // The API supports guest COD order placement, but this preview catalog still
+    // uses demo string IDs and has no published server-side inventory. Do not
+    // submit fake IDs or create an order against demo data.
     setError(
-      "Checkout is unavailable until Eixon payment verification and the secure Shop order service are connected."
+      "Guest Cash on Delivery is approved. Orders can be submitted after real products and inventory are published to the Shop catalog. No order was created."
     );
     return;
   };
@@ -1220,16 +1231,33 @@ function CheckoutPage({ onNotify }: { onNotify: (message: string) => void }) {
               </div>
             </div>
             <div className="payment-options">
-              <div className="payment-option active" aria-current="true">
-                <span>
-                  <strong>Eixon</strong>
-                  <small>
-                    The only approved Shop payment route. Checkout stays
-                    unavailable until the Eixon contract is connected.
-                  </small>
-                </span>
-                <span className="radio-dot" />
-              </div>
+              {[
+                { id: "eixon_wallet", title: "Eixon Wallet", note: "Requires Neweix Account and an active Eixon payment contract.", enabled: false },
+                { id: "cod", title: "Cash on Delivery", note: "Guest checkout is supported. New orders enter manual delivery review.", enabled: true },
+                { id: "bkash", title: "bKash", note: "Pending gateway credentials, webhook verification and legal approval.", enabled: false },
+                { id: "nagad", title: "Nagad", note: "Pending gateway credentials, webhook verification and legal approval.", enabled: false },
+                { id: "card", title: "Debit / Credit Card", note: "Pending compliant card gateway and legal approval.", enabled: false },
+              ].map(method => (
+                <label
+                  className={`payment-option ${paymentMethod === method.id ? "active" : ""}`}
+                  key={method.id}
+                  aria-disabled={!method.enabled}
+                >
+                  <input
+                    type="radio"
+                    name="payment"
+                    value={method.id}
+                    checked={paymentMethod === method.id}
+                    disabled={!method.enabled}
+                    onChange={event => setPaymentMethod(event.target.value)}
+                  />
+                  <span>
+                    <strong>{method.title}</strong>
+                    <small>{method.note}</small>
+                  </span>
+                  <span className="radio-dot" />
+                </label>
+              ))}
             </div>
             <div className="payment-note">
               <LockKeyhole size={15} />
@@ -1289,9 +1317,9 @@ function CheckoutPage({ onNotify }: { onNotify: (message: string) => void }) {
             <ArrowRight size={16} />
           </button>
           <p className="summary-note">
-            This source build stores the request locally for review. A
-            production order is only confirmed after server persistence and
-            delivery/payment verification are configured.
+            Guest orders do not require login. Cash on Delivery is the approved
+            guest route; order placement remains paused until the real catalog
+            and stock are published. Online gateways remain approval-gated.
           </p>
         </aside>
       </form>
