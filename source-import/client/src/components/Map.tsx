@@ -91,7 +91,7 @@ function loadMapScript() {
   if (!apiKey) return Promise.reject(new Error("Google Maps is not configured for this deployment"));
   const API_KEY = encodeURIComponent(apiKey);
   const MAPS_PROXY_URL = "https://maps.googleapis.com";
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     const script = document.createElement("script");
     script.src = `${MAPS_PROXY_URL}/maps/api/js?key=${API_KEY}&v=weekly&libraries=marker,places,geocoding,geometry`;
     script.async = true;
