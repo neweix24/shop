@@ -41,6 +41,7 @@ import {
   type OrderRequest,
 } from "@/lib/store";
 import NotFound from "@/pages/NotFound";
+import TrackOrderPage from "@/pages/TrackOrderPage";
 import {
   Heart,
   Menu,
@@ -2028,6 +2029,7 @@ function Storefront() {
             <AccountPage userName={auth.user?.name} onNotify={notify} />
           )}
         />
+        <Route path="/track" component={TrackOrderPage} />
         <Route path="/orders" component={OrdersPage} />
         <Route path="/orders/:id">
           {params => <OrderDetailPage id={params.id} />}
@@ -2081,7 +2083,7 @@ function Storefront() {
             <span className="eyebrow">Support</span>
             <Link href="/faq">FAQ</Link>
             <Link href="/contact">Contact</Link>
-            <Link href="/orders">Track an order</Link>
+            <Link href="/track">Track an order</Link>
             <Link href="/privacy">Privacy & consent</Link>
           </div>
           <div>
