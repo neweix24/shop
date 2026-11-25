@@ -1068,7 +1068,6 @@ function CartPage({ onNotify }: { onNotify: (message: string) => void }) {
 
 function CheckoutPage({ onNotify }: { onNotify: (message: string) => void }) {
   const { cart } = useStoreState();
-  const [, setLocation] = useLocation();
   const [address, setAddress] = useState<DeliveryAddress>({
     name: "",
     phone: "",
@@ -1081,7 +1080,7 @@ function CheckoutPage({ onNotify }: { onNotify: (message: string) => void }) {
   });
   const [paymentMethod] = useState("Eixon");
   const [error, setError] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted] = useState(false);
   const subtotal = cartSubtotal(
     cart,
     id => products.find(product => product.id === id),

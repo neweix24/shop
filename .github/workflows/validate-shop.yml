@@ -1,0 +1,45 @@
+name: Shop source validation
+
+on:
+  push:
+    branches: [neweix24-patch-1]
+    paths:
+      - source-import/**
+      - .github/workflows/validate-shop.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shop-source-validation
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: source-import
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          ref: neweix24-patch-1
+      - name: Setup Node and pnpm
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: source-import/pnpm-lock.yaml
+      - name: Enable pnpm
+        run: corepack enable
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: TypeScript check
+        run: pnpm check
+      - name: Unit tests
+        run: pnpm test
+      - name: Production build
+        run: pnpm build
