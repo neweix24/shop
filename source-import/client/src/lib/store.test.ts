@@ -1,31 +1,58 @@
 import { describe, expect, it } from "vitest";
 import { bangladeshAreas } from "../data/bangladesh";
-import { discountPercent, getVariant, products } from "./catalog";
+import { discountPercent, getVariant, products, type Product } from "./catalog";
 import { addToCart, cartSubtotal, validateCheckout } from "./store";
 
-describe("NEWEIX pricing", () => {
+const lamp: Product = {
+  id: "test-lamp",
+  slug: "test-lamp",
+  name: "Test lamp",
+  category: "Desk",
+  eyebrow: "Test fixture",
+  description: "A test-only product fixture.",
+  details: [],
+  image: "/test.svg",
+  gallery: ["/test.svg"],
+  color: "Standard",
+  variants: [{ id: "standard", label: "Standard", stock: 18, price: 4850, compareAt: 5600 }],
+  rating: 0,
+  reviewCount: 0,
+  reviews: [],
+  tags: [],
+};
+const notebook: Product = {
+  ...lamp,
+  id: "test-notebook",
+  slug: "test-notebook",
+  name: "Test notebook",
+  variants: [{ id: "saffron", label: "Saffron", stock: 44, price: 780, compareAt: 950 }],
+};
+
+describe("NEWEIX catalog and pricing", () => {
+  it("does not expose hard-coded demo products", () => {
+    expect(products).toHaveLength(0);
+  });
+
   it("calculates a visible discount percentage from compare-at pricing", () => {
-    const product = products.find(item => item.slug === "arc-desk-lamp")!;
-    expect(discountPercent(getVariant(product))).toBe(13);
+    expect(discountPercent(getVariant(lamp))).toBe(13);
   });
 
   it("calculates subtotal from selected variants and quantities", () => {
-    const lamp = products.find(item => item.slug === "arc-desk-lamp")!;
-    const notebook = products.find(item => item.slug === "daily-notebook")!;
+    const fixtures = [lamp, notebook];
     expect(
       cartSubtotal(
         [
           { productId: lamp.id, variantId: "standard", quantity: 2 },
           { productId: notebook.id, variantId: "saffron", quantity: 1 },
         ],
-        id => products.find(item => item.id === id),
+        id => fixtures.find(item => item.id === id),
         (product, id) => getVariant(product, id)
       )
     ).toBe(10480);
   });
 
   it("caps add-to-cart quantity at available stock", () => {
-    const items = addToCart("nx-001", "standard", 999, 18);
+    const items = addToCart("test-lamp", "standard", 999, 18);
     expect(items[0]?.quantity).toBe(18);
   });
 });
