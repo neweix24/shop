@@ -63,10 +63,7 @@ type ApiCatalogProduct = {
     title: string;
     unit_price_minor: number;
     is_active: boolean;
-    shop_inventory:
-      | { quantity_on_hand: number; quantity_reserved: number }
-      | Array<{ quantity_on_hand: number; quantity_reserved: number }>
-      | null;
+    stock: number;
   }>;
 };
 
@@ -87,24 +84,15 @@ export async function fetchCatalog() {
   if (!Array.isArray(payload.products)) {
     throw new Error("The Shop catalog returned an invalid response.");
   }
-  const { products: _unused } = payload;
   return payload.products.flatMap(product => {
     const variants = (product.shop_product_variants ?? [])
       .filter(variant => variant.is_active)
-      .map(variant => {
-        const inventory = Array.isArray(variant.shop_inventory)
-          ? variant.shop_inventory[0]
-          : variant.shop_inventory;
-        const stock = inventory
-          ? Math.max(0, inventory.quantity_on_hand - inventory.quantity_reserved)
-          : 0;
-        return {
-          id: variant.id,
-          label: variant.title,
-          stock,
-          price: Number(variant.unit_price_minor) / 100,
-        };
-      });
+      .map(variant => ({
+        id: variant.id,
+        label: variant.title,
+        stock: Math.max(0, variant.stock ?? 0),
+        price: Number(variant.unit_price_minor) / 100,
+      }))
     if (!variants.length) return [];
     const image = product.image_url || PRODUCT_PLACEHOLDER;
     return [{
