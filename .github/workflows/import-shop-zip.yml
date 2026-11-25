@@ -1,40 +1,104 @@
 name: Import Shop ZIP source
+
 on:
   workflow_dispatch:
   push:
     branches: [neweix24-patch-1]
+    paths:
+      - code.zip
+      - .github/workflows/import-shop-zip.yml
+
 permissions:
   contents: write
+
+concurrency:
+  group: shop-zip-import
+  cancel-in-progress: false
+
 jobs:
   import:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout source branch
+        uses: actions/checkout@v4
         with:
           ref: neweix24-patch-1
           fetch-depth: 0
-      - name: Extract source safely
+
+      - name: Validate and extract archive
+        shell: bash
         run: |
           set -euo pipefail
           test -s code.zip
-          mkdir -p /tmp/shopzip source-import
-          unzip -q code.zip -d /tmp/shopzip
-          rsync -a --delete --exclude='.git/' --exclude='node_modules/' --exclude='dist/' --exclude='build/' --exclude='.manus-logs/' --exclude='.env' --exclude='.env.*' --exclude='!.env.example' --exclude='*.zip' --exclude='*.tar.gz' --exclude='*.bak' --exclude='debug-collector.js' /tmp/shopzip/ source-import/
-          test -f source-import/package.json
-      - name: Commit extracted project
+          unzip -tq code.zip
+          rm -rf /tmp/shop-archive source-import
+          mkdir -p /tmp/shop-archive source-import
+          unzip -q code.zip -d /tmp/shop-archive
+
+          # Find the project root even when the ZIP contains one wrapper directory.
+          if [ -f /tmp/shop-archive/package.json ]; then
+            ROOT=/tmp/shop-archive
+          else
+            mapfile -t manifests < <(find /tmp/shop-archive -mindepth 2 -maxdepth 4 -type f -name package.json -not -path '*/node_modules/*' | sort)
+            if [ "${#manifests[@]}" -ne 1 ]; then
+              echo "Expected exactly one project package.json; found ${#manifests[@]}."
+              printf '%s\n' "${manifests[@]}"
+              exit 1
+            fi
+            ROOT="$(dirname "${manifests[0]}")"
+          fi
+
+          # Never import credentials, nested archives, generated output, or VCS metadata.
+          rsync -a --delete \
+            --exclude='/.git/' \
+            --exclude='/node_modules/' \
+            --exclude='/dist/' \
+            --exclude='/build/' \
+            --exclude='/.manus-logs/' \
+            --exclude='/.env' \
+            --exclude='/.env.*' \
+            --include='/.env.example' \
+            --exclude='*.zip' \
+            --exclude='*.tar.gz' \
+            --exclude='*.bak' \
+            --exclude='debug-collector.js' \
+            "${ROOT}/" source-import/
+          test -s source-import/package.json
+          echo "Imported project root: ${ROOT}"
+          find source-import -maxdepth 2 -type f | sort | head -200
+
+      - name: Commit extracted source
+        shell: bash
         run: |
+          set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add source-import
           if ! git diff --cached --quiet; then
             git commit -m 'Import storefront source from uploaded ZIP'
             git push origin HEAD:neweix24-patch-1
+          else
+            echo 'No source changes to import.'
           fi
-      - name: Install and run checks
+
+      - name: Install dependencies
         working-directory: source-import
         run: |
           set -euo pipefail
           if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+      - name: Run available validation scripts
+        working-directory: source-import
+        run: |
+          set -euo pipefail
+          node --version
+          npm --version
+          node -e "const p=require('./package.json'); console.log(JSON.stringify(p.scripts || {}, null, 2))"
           for task in typecheck check lint test build; do
-            npm run "$task" --if-present
+            if npm run | grep -Eq "^[[:space:]]+${task}([[:space:]]|$)"; then
+              npm run "$task"
+            else
+              echo "Skipping missing script: $task"
+            fi
           done
