@@ -31,11 +31,17 @@ The Supabase Edge Function `shop-api` is deployed and its `GET /health` endpoint
 
 The function has platform JWT verification disabled only because it performs explicit user-token validation for protected routes while exposing public catalogue and health routes. Do not remove the explicit `auth.getUser(token)` check or rely on unverified JWT claims.
 
-## Eixon payment boundary
+## Approved Shop payment methods
 
-Eixon is the only approved Shop checkout payment route. Eixon owns all wallet balances and financial records. Shop must not offer Cash on Delivery, bKash, Nagad, Rocket, card gateways, or any alternative checkout route under the current policy.
+The user's approved Shop methods are:
 
-The Eixon Supabase project is currently inactive and no approved Shop payment API/client credentials or signed webhook contract have been verified. Eixon Wallet checkout therefore remains disabled. COD guest orders are created with `due_on_delivery` and `manual_review`; no online payment is claimed. bKash, Nagad, and card checkout remain disabled until provider/legal approvals, credentials, signed webhooks, and end-to-end reconciliation tests are complete. Do not mark online payments paid from a browser redirect.
+- **Eixon Wallet:** requires Neweix Account authentication and an active, approved Eixon Shop payment contract.
+- **Cash on Delivery:** supports guest checkout without login. Orders are created as due-on-delivery and enter manual delivery review.
+- **bKash and Nagad:** remain disabled until provider credentials, signed webhook verification, reconciliation, and legal approval are complete.
+- **Debit/credit cards:** remain disabled until a compliant card gateway, signed webhook verification, reconciliation, and legal approval are complete.
+
+Eixon owns all EIX balances and financial records. Shop must never create a shadow EIX ledger or wallet transfer endpoint. The Eixon Supabase project is currently inactive and no approved Shop payment API/client credentials or signed webhook contract have been verified, so Eixon Wallet checkout remains disabled. No online payment is marked paid from a browser redirect. COD is the only payment path currently implemented server-side, and it remains in manual delivery review until real catalogue inventory and delivery operations are ready.
+
 
 ## Pathao and notifications
 
