@@ -672,7 +672,7 @@ function ShopPage({ onNotify }: { onNotify: (message: string) => void }) {
       {result.length === 0 && (
         <EmptyState
           title={products.length === 0 ? "The catalog is being prepared" : "Nothing here yet"}
-          body={products.length === 0 ? "No products have been published to the Shop catalog yet. Please check back soon." : "Try another category or search the full edit."
+          body={products.length === 0 ? "No products have been published to the Shop catalog yet. Please check back soon." : "Try another category or search the full edit."}
           action={
             <Link href="/shop" className="button button-dark">
               See everything
