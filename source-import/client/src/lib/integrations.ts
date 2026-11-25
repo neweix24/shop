@@ -4,11 +4,11 @@ export function getSupabaseBrowserStatus(): IntegrationStatus {
   const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
   return url && anonKey
-    ? { configured: true, message: "Supabase browser configuration detected." }
+    ? { configured: true, message: "Supabase browser configuration detected; Account SSO still requires a registered first-party OAuth client." }
     : {
         configured: false,
         message:
-          "Supabase browser auth is not configured in this environment; the secure Manus OAuth foundation remains available.",
+          "Supabase browser auth is not configured in this environment; Neweix Account SSO is not connected to Shop yet. Guest checkout remains available.",
       };
 }
 
