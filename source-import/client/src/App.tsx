@@ -770,14 +770,16 @@ function ProductPage({
         <div className="product-detail-copy">
           <span className="eyebrow">{product.eyebrow}</span>
           <h1>{product.name}</h1>
-          <div className="detail-rating">
-            <span className="stars">
-              {"★".repeat(Math.round(product.rating))}
-            </span>
-            <span>
-              {product.rating} · {product.reviewCount} reviews
-            </span>
-          </div>
+          {product.reviewCount > 0 && (
+            <div className="detail-rating">
+              <span className="stars">
+                {"★".repeat(Math.round(product.rating))}
+              </span>
+              <span>
+                {product.rating} · {product.reviewCount} reviews
+              </span>
+            </div>
+          )}
           <div className="detail-price">
             <strong>{formatBDT(variant.price)}</strong>
             {variant.compareAt && (
@@ -911,6 +913,7 @@ function ProductPage({
 }
 
 function Reviews({ product }: { product: Product }) {
+  if (product.reviews.length === 0) return null;
   return (
     <section className="reviews-section">
       <div className="section-heading">
