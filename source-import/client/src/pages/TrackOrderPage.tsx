@@ -10,7 +10,7 @@ function formatMoney(minor: number, currency: string) {
 }
 
 export default function TrackOrderPage() {
-  const [orderId, setOrderId] = useState("");
+  const [orderId, setOrderId] = useState(() => new URLSearchParams(window.location.search).get("orderId") || "");
   const [phone, setPhone] = useState("");
   const [order, setOrder] = useState<GuestOrderTracking | null>(null);
   const [error, setError] = useState("");
