@@ -3,7 +3,6 @@ on:
   workflow_dispatch:
   push:
     branches: [neweix24-patch-1]
-    paths: [code.zip]
 permissions:
   contents: write
 jobs:
