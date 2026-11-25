@@ -1,6 +1,11 @@
 name: Import uploaded storefront archive
 
 on:
+  push:
+    branches:
+      - feat/neweix-storefront-integration
+    paths:
+      - code.zip
   workflow_dispatch:
     inputs:
       archive_path:
@@ -29,10 +34,18 @@ jobs:
           ref: ${{ github.ref }}
           fetch-depth: 0
 
-      - name: Validate and extract source archive
+      - name: Check for uploaded archive
+        id: archive
         env:
-          ARCHIVE_PATH: ${{ inputs.archive_path }}
-          DESTINATION: ${{ inputs.destination }}
+          ARCHIVE_PATH: ${{ inputs.archive_path || 'code.zip' }}
+        run: |
+          if [ -f "$ARCHIVE_PATH" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "present=false" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Validate and extract source archive
+        if: steps.archive.outputs.present == 'true'
+        env:
+          ARCHIVE_PATH: ${{ inputs.archive_path || 'code.zip' }}
+          DESTINATION: ${{ inputs.destination || '.' }}
         run: |
           python3 - <<'PY'
           import os, pathlib, zipfile, shutil, sys
@@ -90,6 +103,7 @@ jobs:
           PY
 
       - name: Commit imported storefront source
+        if: steps.archive.outputs.present == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
