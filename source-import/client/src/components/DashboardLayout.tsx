@@ -19,7 +19,6 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
@@ -47,6 +46,7 @@ export default function DashboardLayout({
     return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
   });
   const { loading, user } = useAuth();
+  const [authMessage, setAuthMessage] = useState("");
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString());
@@ -65,16 +65,17 @@ export default function DashboardLayout({
               Sign in to continue
             </h1>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Access to this dashboard requires authentication. Continue to launch the login flow.
+              Neweix Account SSO is not connected yet. Use guest checkout while account features are being integrated.
             </p>
           </div>
           <Button
-            onClick={() => startLogin()}
+            onClick={() => setAuthMessage("Neweix Account sign-in is not available in this Shop preview yet.")}
             size="lg"
             className="w-full shadow-lg hover:shadow-xl transition-all"
           >
             Sign in
           </Button>
+          {authMessage && <p className="text-sm text-muted-foreground">{authMessage}</p>}
         </div>
       </div>
     );
