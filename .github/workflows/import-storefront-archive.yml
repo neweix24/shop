@@ -85,7 +85,8 @@ jobs:
               target.parent.mkdir(parents=True, exist_ok=True)
               shutil.copy2(staged / name, target)
           pathlib.Path("/tmp/neweix-shop-import-count").write_text(str(len(imported)))
-          archive.unlink()\n          print(f"Safely imported {len(imported)} files; removed the uploaded ZIP from the repository.")
+          archive.unlink()
+          print(f"Safely imported {len(imported)} files; removed the uploaded ZIP from the repository.")
           PY
 
       - name: Commit imported storefront source
