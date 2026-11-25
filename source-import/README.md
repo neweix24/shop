@@ -1,51 +1,22 @@
-# Neweix Shop
+# Shop source import
 
-Neweix Shop is the ecosystem's customer-facing online store. Its approved checkout contract supports guest orders without login, Eixon Wallet for signed-in Neweix Account customers, Cash on Delivery, and (after provider and legal approval) bKash, Nagad, and debit/credit cards.
+This directory contains the imported legacy Shop application and the active Shop API function. The target production architecture and integration gates are documented below.
 
-## Approved architecture
+## Architecture status
 
-The approved target architecture is Next.js/TypeScript storefront, NestJS modular-monolith API, PostgreSQL, Redis, Central Neweix Account authentication, and Eixon-owned financial processing. Shop owns commerce records; Account owns credentials and sessions; Eixon owns EIX, wallets, balances, and financial ledger; Supreme retains highest governance authority.
-
-The imported source in `source-import/` is a legacy Vite/React + Express/tRPC starter and is not yet the approved final architecture. Its Manus OAuth and Manus notification paths have been disabled/removed. Do not deploy this legacy app as the production Shop.
-
-## Current live foundation
-
-The active Neweix Supabase project contains an additive Shop data model under `public.shop_*`:
-
-- products and variants
-- inventory and reservation counts
-- guest and Account-linked orders
-- order items and immutable purchase snapshots
-- payment attempts
-- delivery jobs
-- order events
-- customer addresses and returns
-- guest carts and rate-limit records
-
-All Shop tables have RLS enabled. Public access is limited to active catalogue reads. Customer order/address reads are owner-scoped. Order, payment, inventory, delivery, and cart mutations are server-only.
-
-The deployed Supabase Edge Function is `shop-api`:
-
-- `GET /health`: service readiness and payment-method status.
-- `GET /products`: active Shop catalogue.
-- `GET /orders`: Account-token protected order history.
-- `POST /checkout`: guest COD checkout, server-side validation and atomic stock reservation.
-- `POST /track`: guest order tracking using Order UUID plus checkout phone, with database-backed rate limiting.
-
-The catalogue is currently empty. The legacy storefront still contains sample catalogue data with non-database variant IDs. The frontend does not submit those sample IDs as real orders.
-
-## Payment policy
-
-- Eixon Wallet: requires Neweix Account and an active, approved Eixon Shop payment contract. Currently unavailable because the Eixon Supabase project is inactive and no Shop payment contract is verified.
-- Cash on Delivery: implemented for guest orders. Orders enter manual delivery review until dispatch operations and delivery charges are confirmed.
-- bKash and Nagad: disabled until provider credentials, webhook verification, reconciliation, and legal approval.
-- Debit/credit cards: disabled until a compliant gateway, webhook verification, reconciliation, and legal approval.
-
-Shop never stores EIX balances or operates a shadow wallet/ledger. No online payment is marked paid from a browser redirect.
+The imported storefront is a legacy Vite/React client with an Express/tRPC server. It is not the approved production architecture. The approved target is a Next.js storefront with a NestJS modular monolith and PostgreSQL, integrated with the central Neweix Account service.
 
 ## Identity
 
-Neweix Account is the sole identity authority. The Account repository documents Supabase Auth and first-party OAuth 2.1/OIDC with PKCE. The Shop OAuth client has not been registered and the Account OAuth server configuration has not been verified. Legacy Manus OAuth has been retired from the active request path. Guest checkout remains available without login.
+Neweix Account is the sole identity authority. Shop must not create a separate password store, session system, or Manus OAuth flow. Account SSO is not yet registered or verified for Shop, so authenticated account features remain unavailable. Guest checkout is limited to Cash on Delivery.
+
+## Payments
+
+Eixon is the only approved Neweix wallet/payment integration for Shop, but the production Eixon contract is not yet available. Eixon Wallet, bKash, Nagad, and card payments must remain disabled until their official integrations, reconciliation, security controls, and approvals are complete. Cash on Delivery orders are created for manual review and must not be represented as confirmed fulfilment.
+
+## Data ownership
+
+Shop owns catalogue, variants, inventory, carts, orders, delivery, returns, and support data. Eixon owns EIX balances and ledger entries. Account owns identity and sessions. Client requests cannot assign roles or mutate protected inventory and order state.
 
 ## Delivery and notifications
 
@@ -53,7 +24,7 @@ Pathao API credentials, coverage, pricing, booking, and tracking have not been v
 
 ## Verification
 
-GitHub Actions validates the imported frontend build, TypeScript, unit tests, and the Shop Edge Function. A successful build or healthy read-only API is not a production release.
+GitHub Actions validates the imported frontend build, TypeScript, unit tests, and the Shop Edge Function. The Deno validation step must execute from `supabase/functions/shop-api` so Deno loads that function's local `deno.json` import map and `nodeModulesDir` setting. A successful build or healthy read-only API is not a production release.
 
 ## Production blockers
 
