@@ -41,3 +41,19 @@ jobs:
         run: pnpm test
       - name: Production build
         run: pnpm build
+
+  validate-edge-function:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          ref: neweix24-patch-1
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check Shop Edge Function
+        working-directory: source-import
+        run: deno check supabase/functions/shop-api/index.ts
