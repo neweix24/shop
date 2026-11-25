@@ -152,7 +152,6 @@ export function validateCheckout(
     "division",
     "district",
     "upazila",
-    "union",
     "line1",
   ];
   const missing = required.filter(
