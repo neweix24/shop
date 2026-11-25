@@ -16,6 +16,7 @@ import {
   getVariant,
   products,
   searchProducts,
+  setCatalogProducts,
   type Product,
 } from "@/lib/catalog";
 import {
@@ -26,6 +27,7 @@ import {
 import {
   addToCart,
   cartCount,
+  setCart,
   cartSubtotal,
   getCart,
   getOrderRequests,
@@ -42,6 +44,7 @@ import {
 } from "@/lib/store";
 import NotFound from "@/pages/NotFound";
 import TrackOrderPage from "@/pages/TrackOrderPage";
+import { createGuestCodOrder, fetchCatalog } from "@/lib/shopApi";
 import {
   Heart,
   Menu,
@@ -412,12 +415,14 @@ function ProductCard({
         <div className="card-actions">
           <button
             className="button button-dark button-small"
+            disabled={!variant.stock}
             onClick={() => add(false)}
           >
-            Add to bag
+            {variant.stock ? "Add to bag" : "Out of stock"}
           </button>
           <button
             className="button button-quiet button-small"
+            disabled={!variant.stock}
             onClick={() => add(true)}
           >
             Buy now <ArrowUpRight size={14} />
@@ -666,8 +671,8 @@ function ShopPage({ onNotify }: { onNotify: (message: string) => void }) {
       </div>
       {result.length === 0 && (
         <EmptyState
-          title="Nothing here yet"
-          body="Try another category or search the full edit."
+          title={products.length === 0 ? "The catalog is being prepared" : "Nothing here yet"}
+          body={products.length === 0 ? "No products have been published to the Shop catalog yet. Please check back soon." : "Try another category or search the full edit."
           action={
             <Link href="/shop" className="button button-dark">
               See everything
@@ -1080,7 +1085,10 @@ function CheckoutPage({ onNotify }: { onNotify: (message: string) => void }) {
   });
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [error, setError] = useState("");
-  const [submitted] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [idempotencyKey] = useState(() => `shop-${crypto.randomUUID()}`);
+  const [, setLocation] = useLocation();
   const subtotal = cartSubtotal(
     cart,
     id => products.find(product => product.id === id),
@@ -1101,8 +1109,10 @@ function CheckoutPage({ onNotify }: { onNotify: (message: string) => void }) {
       ...(field === "district" ? { upazila: "", union: "" } : {}),
       ...(field === "upazila" ? { union: "" } : {}),
     }));
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (submitting || submitted) return;
+    setError("");
     const validation = validateCheckout(address, paymentMethod);
     if (!validation.valid) {
       setError(
@@ -1120,13 +1130,42 @@ function CheckoutPage({ onNotify }: { onNotify: (message: string) => void }) {
       setError(unavailable[paymentMethod] ?? "This payment method is not available.");
       return;
     }
-    // The API supports guest COD order placement, but this preview catalog still
-    // uses demo string IDs and has no published server-side inventory. Do not
-    // submit fake IDs or create an order against demo data.
-    setError(
-      "Guest Cash on Delivery is approved. Orders can be submitted after real products and inventory are published to the Shop catalog. No order was created."
-    );
-    return;
+    const validItems = cart.map(item => {
+      const product = products.find(entry => entry.id === item.productId);
+      const variant = product?.variants.find(entry => entry.id === item.variantId);
+      return variant && variant.stock >= item.quantity
+        ? { variantId: variant.id, quantity: item.quantity }
+        : null;
+    });
+    if (!validItems.length || validItems.some(item => item === null)) {
+      setError("Your bag contains an unavailable product or quantity. Refresh the catalog and update your bag.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const result = await createGuestCodOrder({
+        guestName: address.name,
+        phone: address.phone,
+        address: {
+          division: address.division,
+          district: address.district,
+          upazila: address.upazila,
+          unionOrArea: address.union,
+          addressLine: address.line1,
+        },
+        items: validItems,
+        note: address.note,
+        idempotencyKey,
+      });
+      setSubmitted(true);
+      setCart([]);
+      onNotify(`Order ${result.order.order_number} received for manual review.`);
+      setLocation(`/track?orderId=${encodeURIComponent(result.order.id)}`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Your order could not be submitted. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
   if (!cart.length)
     return (
@@ -1310,16 +1349,15 @@ function CheckoutPage({ onNotify }: { onNotify: (message: string) => void }) {
           </div>
           <button
             className="button button-dark button-wide"
-            disabled={submitted}
+            disabled={submitted || submitting}
             type="submit"
           >
-            {submitted ? "Request saved" : "Place order request"}{" "}
+            {submitting ? "Submitting order…" : submitted ? "Order submitted" : "Place COD order"}{" "}
             <ArrowRight size={16} />
           </button>
           <p className="summary-note">
-            Guest orders do not require login. Cash on Delivery is the approved
-            guest route; order placement remains paused until the real catalog
-            and stock are published. Online gateways remain approval-gated.
+            Guest orders do not require login. COD orders are checked against live
+            inventory and enter manual delivery review. Online gateways remain disabled.
           </p>
         </aside>
       </form>
@@ -1984,9 +2022,43 @@ function EmptyState({
 function Storefront() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notice, setNotice] = useState("");
+  const [, setCatalogRevision] = useState(0);
   const { cart, wishlist } = useStoreState();
   const auth = useAuth();
   const notify = (message: string) => setNotice(message);
+
+  useEffect(() => {
+    let active = true;
+    fetchCatalog()
+      .then(remoteProducts => {
+        if (!active) return;
+        setCatalogProducts(remoteProducts);
+        const available = remoteProducts.flatMap(product =>
+          product.variants.map(variant => ({
+            productId: product.id,
+            variantId: variant.id,
+            stock: variant.stock,
+          }))
+        );
+        const nextCart = getCart().flatMap(item => {
+          const match = available.find(entry =>
+            entry.productId === item.productId && entry.variantId === item.variantId
+          );
+          if (!match || match.stock < 1) return [];
+          return [{ ...item, quantity: Math.min(item.quantity, match.stock) }];
+        });
+        setCart(nextCart);
+        setCatalogRevision(value => value + 1);
+      })
+      .catch(cause => {
+        if (active) {
+          setNotice(cause instanceof Error ? cause.message : "Shop catalog is temporarily unavailable.");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
   return (
     <div className="app-shell">
       <SiteHeader
