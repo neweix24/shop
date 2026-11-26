@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveShopApiUrl } from "./shopApi";
+import { isGuestCodCheckoutEnabled, resolveShopApiUrl } from "./shopApi";
 
 describe("resolveShopApiUrl", () => {
   it("uses the approved Shop API in a production build when no override is set", () => {
@@ -36,5 +36,19 @@ describe("resolveShopApiUrl", () => {
     expect(resolveShopApiUrl("development", "http://localhost:54321/")).toBe(
       "http://localhost:54321"
     );
+  });
+});
+
+
+describe("isGuestCodCheckoutEnabled", () => {
+  it("is fail-closed when the health response omits checkout status", () => {
+    expect(isGuestCodCheckoutEnabled({ status: "ok" })).toBe(false);
+    expect(isGuestCodCheckoutEnabled(null)).toBe(false);
+    expect(isGuestCodCheckoutEnabled({ checkout: { guestCod: true } })).toBe(false);
+  });
+
+  it("enables guest COD only for the explicit enabled state", () => {
+    expect(isGuestCodCheckoutEnabled({ checkout: { guestCod: "enabled" } })).toBe(true);
+    expect(isGuestCodCheckoutEnabled({ checkout: { guestCod: "disabled" } })).toBe(false);
   });
 });

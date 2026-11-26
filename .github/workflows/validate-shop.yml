@@ -61,3 +61,6 @@ jobs:
       - name: Type-check Shop Edge Function
         working-directory: source-import/supabase/functions/shop-api
         run: deno check index.ts
+      - name: Test Shop Edge Function request guards
+        working-directory: source-import/supabase/functions/shop-api
+        run: deno test _shared/request_test.ts

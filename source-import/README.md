@@ -94,3 +94,16 @@ Preview build configuration was restricted to the approved preview branch; produ
 ## Preview API isolation
 
 The Cloudflare Pages project `neweix-shop-preview` builds this source with `pnpm build:static --mode preview`. In preview mode, the browser client does not fall back to the production Shop API when `VITE_SHOP_API_URL` is absent. A dedicated isolated staging API must be explicitly configured before preview catalog, checkout, or tracking requests are enabled. This prevents a preview UI from reading or mutating production Shop data by accident.
+
+
+## Checkout and delivery safety update (2026-11-26)
+
+Guest Cash on Delivery remains an intended Shop checkout path, but the API now fails closed unless the server-side environment flag `SHOP_GUEST_CHECKOUT_ENABLED=true` is explicitly set. The flag must stay unset/false until all of the following are implemented and verified: delegated Admin authorization, order accept/reject/cancel operations, reserved-inventory release on cancellation/expiry, delivery-fee confirmation, and audit events. The storefront reads the Shop health endpoint and keeps checkout paused when the API does not explicitly report guest COD as enabled. A browser cannot enable this flag.
+
+Request JSON is now read from a bounded stream, not buffered in full before the byte limit is checked. This protects public tracking/checkout endpoints against oversized request bodies. Deno unit tests cover invalid JSON, primitive payloads, exact byte limits, malformed UTF-8, streaming limits, and the fail-closed checkout flag.
+
+Storefront copy no longer promises free Dhaka delivery or nationwide coverage. Cart and guest-order tracking display product subtotal separately from the unconfirmed delivery fee and final payable amount. A manual-review order is not presented as a confirmed order total.
+
+The new additive migration `20261126150000_shop_owner_rls_initplan.sql` preserves existing Shop owner-read policy semantics while using `(select auth.uid())` for the five affected policies. It is committed for review only. The live Supabase migration-history query did not show the existing Shop migration versions even though the Shop tables and policies exist, so do not run a blanket `db push` or apply this migration until the database baseline/history is reconciled.
+
+These source changes are not yet deployed to the live `shop-api` Edge Function. Production deployment remains blocked by the Supreme protected registry authorization, the Admin grant/order-operations contract, and the canonical Worker currently returning HTTP 503. The Cloudflare Pages preview project remains preview-only.

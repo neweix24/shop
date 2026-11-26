@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { isGuestCodCheckoutEnabled, readBoundedJson } from "./_shared/request.ts";
 
 const allowedOrigin = Deno.env.get("SHOP_ALLOWED_ORIGIN") ?? "https://www.shop.neweix.com";
 const corsHeaders = {
@@ -23,19 +24,6 @@ function serviceClient() {
   return createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-}
-
-async function readJson(request: Request, maxBytes = 16_384): Promise<Record<string, unknown> | null> {
-  const raw = await request.text();
-  if (new TextEncoder().encode(raw).byteLength > maxBytes) return null;
-  try {
-    const value: unknown = JSON.parse(raw);
-    return value && typeof value === "object" && !Array.isArray(value)
-      ? value as Record<string, unknown>
-      : null;
-  } catch {
-    return null;
-  }
 }
 
 function normalizeBangladeshPhone(value: unknown): string | null {
@@ -69,12 +57,18 @@ Deno.serve(async (request: Request) => {
   const path = url.pathname.startsWith("/shop-api") ? (url.pathname.slice(9) || "/") : url.pathname;
 
   if (request.method === "GET" && path === "/health") {
+    const guestCodCheckoutEnabled = isGuestCodCheckoutEnabled(Deno.env.get("SHOP_GUEST_CHECKOUT_ENABLED"));
     return json({
       service: "shop-api",
       status: "ok",
-      capabilities: ["catalog-read", "guest-order-tracking", "guest-cod-checkout"],
+      capabilities: [
+        "catalog-read",
+        "guest-order-tracking",
+        ...(guestCodCheckoutEnabled ? ["guest-cod-checkout"] : []),
+      ],
+      checkout: { guestCod: guestCodCheckoutEnabled ? "enabled" : "disabled" },
       paymentMethods: {
-        cod: "manual-review",
+        cod: guestCodCheckoutEnabled ? "manual-review" : "disabled-until-order-operations-ready",
         eixon_wallet: "disabled-until-eixon-service-restored-and-contract-approved",
         bkash: "disabled-until-gateway-and-legal-approval",
         nagad: "disabled-until-gateway-and-legal-approval",
@@ -153,7 +147,7 @@ Deno.serve(async (request: Request) => {
   }
 
   if (request.method === "POST" && path === "/track") {
-    const body = await readJson(request, 4096);
+    const body = await readBoundedJson(request, 4096);
     if (!body) return json({ error: "Invalid request body." }, 400);
     const orderId = typeof body.orderId === "string" ? body.orderId : "";
     const phone = normalizeBangladeshPhone(body.phone);
@@ -183,7 +177,13 @@ Deno.serve(async (request: Request) => {
   }
 
   if (request.method === "POST" && path === "/checkout") {
-    const body = await readJson(request);
+    if (!isGuestCodCheckoutEnabled(Deno.env.get("SHOP_GUEST_CHECKOUT_ENABLED"))) {
+      return json({
+        error: "Guest COD checkout is paused until Shop order review, cancellation, and reserved-inventory release operations are implemented and verified.",
+        code: "SHOP_CHECKOUT_DISABLED",
+      }, 503);
+    }
+    const body = await readBoundedJson(request);
     if (!body) return json({ error: "Invalid request body." }, 400);
     const method = body.paymentMethod;
     if (method !== "cod") {

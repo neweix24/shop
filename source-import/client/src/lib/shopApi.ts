@@ -112,6 +112,18 @@ export type GuestCodOrderResult = {
   replayed: boolean;
 };
 
+export function isGuestCodCheckoutEnabled(payload: unknown): boolean {
+  if (!payload || typeof payload !== "object") return false;
+  const checkout = (payload as { checkout?: unknown }).checkout;
+  if (!checkout || typeof checkout !== "object") return false;
+  return (checkout as { guestCod?: unknown }).guestCod === "enabled";
+}
+
+export async function fetchShopStatus(): Promise<boolean> {
+  const payload = await requestJson<unknown>("/health");
+  return isGuestCodCheckoutEnabled(payload);
+}
+
 export async function fetchCatalog() {
   const payload = await requestJson<{ products: ApiCatalogProduct[] }>("/products");
   if (!Array.isArray(payload.products)) {

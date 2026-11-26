@@ -233,3 +233,15 @@ Research references:
 - Cloudflare Containers deployment: https://developers.cloudflare.com/containers/guides/deploy/
 
 No paid plan, new runtime, production Worker, or domain configuration has been activated as part of this research.
+
+
+## Follow-up code remediation (2026-11-26)
+
+The `fix/shop-checkout-guardrails` work is being prepared on `feat/shop-ecosystem-remediation`:
+
+- Checkout health now reports guest COD availability only when the server-only `SHOP_GUEST_CHECKOUT_ENABLED` flag is explicitly `true`; the checkout POST route returns HTTP 503 by default until order review, cancellation, and reserved-stock release are in place.
+- The frontend consumes this health state and presents a paused checkout rather than allowing an order request that has no operational fulfilment path.
+- JSON request bodies are bounded while streaming, before they are buffered or parsed. Deno tests cover the request guard and flag semantics.
+- Unapproved delivery claims have been removed. Pending manual-review orders show product subtotal, unconfirmed delivery fee, and pending final payable amount separately.
+- A new additive migration optimizes five Shop owner-read RLS policies with `(select auth.uid())`. It has not been applied to the live database because the migration-history query did not return the existing Shop migration versions.
+- These are source changes only until CI and the separate Pages preview deployment succeed. They do not alter the production Worker, domain, Supreme registry, live Edge Function, or live database.

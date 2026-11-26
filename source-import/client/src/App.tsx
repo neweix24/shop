@@ -44,7 +44,7 @@ import {
 } from "@/lib/store";
 import NotFound from "@/pages/NotFound";
 import TrackOrderPage from "@/pages/TrackOrderPage";
-import { createGuestCodOrder, fetchCatalog } from "@/lib/shopApi";
+import { createGuestCodOrder, fetchCatalog, fetchShopStatus } from "@/lib/shopApi";
 import {
   Heart,
   Menu,
@@ -141,7 +141,7 @@ function SiteHeader({
   return (
     <>
       <div className="announcement">
-        <span>Free delivery in Dhaka on orders over ৳4,000</span>
+        <span>Delivery coverage and fees are confirmed by area</span>
         <Link href="/faq">
           How it works <ArrowUpRight size={12} />
         </Link>
@@ -472,7 +472,7 @@ function HomePage({ onNotify }: { onNotify: (message: string) => void }) {
               <ShieldCheck size={15} /> Thoughtfully sourced
             </span>
             <span>
-              <Truck size={15} /> Bangladesh-wide delivery
+              <Truck size={15} /> Delivery coverage checked by area
             </span>
           </div>
         </div>
@@ -869,8 +869,7 @@ function ProductPage({
             <div>
               <Truck size={17} />
               <span>
-                <strong>Delivery, verified first</strong>Dhaka and
-                Bangladesh-wide handling.
+                <strong>Delivery, verified first</strong>Coverage and fees are checked for your area before an order is accepted.
               </span>
             </div>
             <div>
@@ -1051,7 +1050,7 @@ function CartPage({ onNotify }: { onNotify: (message: string) => void }) {
             </div>
             <div className="summary-rule" />
             <div className="summary-row total-row">
-              <span>Estimated total</span>
+              <span>Product subtotal</span>
               <strong>{formatBDT(subtotal)}</strong>
             </div>
             <p className="summary-note">
@@ -1074,7 +1073,7 @@ function CartPage({ onNotify }: { onNotify: (message: string) => void }) {
   );
 }
 
-function CheckoutPage({ onNotify }: { onNotify: (message: string) => void }) {
+function CheckoutPage({ onNotify, guestCheckoutEnabled }: { onNotify: (message: string) => void; guestCheckoutEnabled: boolean }) {
   const { cart } = useStoreState();
   const [address, setAddress] = useState<DeliveryAddress>({
     name: "",
@@ -1179,6 +1178,24 @@ function CheckoutPage({ onNotify }: { onNotify: (message: string) => void }) {
           action={
             <Link href="/shop" className="button button-dark">
               Browse the edit
+            </Link>
+          }
+        />
+      </PageFrame>
+    );
+  if (!guestCheckoutEnabled)
+    return (
+      <PageFrame
+        eyebrow="Checkout"
+        title="Checkout is temporarily paused"
+        intro="Guest COD orders will be accepted only after Shop order review, cancellation, and reserved-stock release operations are implemented and verified. Your cart remains saved."
+      >
+        <EmptyState
+          title="Order operations are not ready"
+          body="No order will be submitted and no inventory will be reserved while this safety gate is closed."
+          action={
+            <Link href="/cart" className="button button-dark">
+              Return to your bag
             </Link>
           }
         />
@@ -1347,8 +1364,8 @@ function CheckoutPage({ onNotify }: { onNotify: (message: string) => void }) {
           </div>
           <div className="summary-rule" />
           <div className="summary-row total-row">
-            <span>Request total</span>
-            <strong>{formatBDT(subtotal)}</strong>
+            <span>Final payable total</span>
+            <strong>Pending review</strong>
           </div>
           <button
             className="button button-dark button-wide"
@@ -1359,8 +1376,7 @@ function CheckoutPage({ onNotify }: { onNotify: (message: string) => void }) {
             <ArrowRight size={16} />
           </button>
           <p className="summary-note">
-            Guest orders do not require login. COD orders are checked against live
-            inventory and enter manual delivery review. Online gateways remain disabled.
+            Guest checkout remains paused until Admin order review and reserved-stock release are verified. Delivery fees and the final payable amount are never assumed.
           </p>
         </aside>
       </form>
@@ -1852,11 +1868,11 @@ function ContentPage({
             ],
             [
               "What payment methods do you support?",
-              "Eixon is the only approved Shop payment route. Payment is never called successful until Eixon confirms it server-side.",
+              "Cash on Delivery is the intended guest checkout route, but order submissions remain paused until Shop order operations are ready. Eixon Wallet stays disabled until its Account and Eixon contracts are approved; no external gateway is active.",
             ],
             [
               "Do you deliver outside Dhaka?",
-              "Yes, subject to service coverage and address verification. Dispatch origin is configurable and is not assumed to be one fixed city.",
+              "Delivery coverage and the final fee are confirmed after your area is checked. Availability may vary; no delivery quote is assumed before verification.",
             ],
             [
               "What is Neweix+?",
@@ -2026,6 +2042,7 @@ function Storefront() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [catalogNotice, setCatalogNotice] = useState<string | null>(null);
+  const [guestCheckoutEnabled, setGuestCheckoutEnabled] = useState(false);
   const [, setCatalogRevision] = useState(0);
   const { cart, wishlist } = useStoreState();
   const auth = useAuth();
@@ -2033,6 +2050,13 @@ function Storefront() {
 
   useEffect(() => {
     let active = true;
+    fetchShopStatus()
+      .then(enabled => {
+        if (active) setGuestCheckoutEnabled(enabled);
+      })
+      .catch(() => {
+        if (active) setGuestCheckoutEnabled(false);
+      });
     fetchCatalog()
       .then(remoteProducts => {
         if (!active) return;
@@ -2105,7 +2129,7 @@ function Storefront() {
         <Route path="/cart" component={() => <CartPage onNotify={notify} />} />
         <Route
           path="/checkout"
-          component={() => <CheckoutPage onNotify={notify} />}
+          component={() => <CheckoutPage onNotify={notify} guestCheckoutEnabled={guestCheckoutEnabled} />}
         />
         <Route path="/signin" component={() => <AuthPage mode="signin" />} />
         <Route path="/signup" component={() => <AuthPage mode="signup" />} />

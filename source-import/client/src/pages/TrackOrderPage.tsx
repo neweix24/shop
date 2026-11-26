@@ -95,9 +95,32 @@ export default function TrackOrderPage() {
             )}
           </div>
           <aside className="summary-card">
-            <span className="eyebrow">Order total</span>
-            <strong>{formatMoney(order.order.total_minor, order.order.currency)}</strong>
+            <span className="eyebrow">Order amount</span>
+            <div className="summary-row">
+              <span>Product subtotal</span>
+              <strong>{formatMoney(order.order.subtotal_minor, order.order.currency)}</strong>
+            </div>
+            <div className="summary-row summary-muted">
+              <span>Delivery fee</span>
+              <strong>
+                {order.order.status === "manual_review" || order.delivery.status === "manual_review"
+                  ? "Pending verification"
+                  : formatMoney(order.order.delivery_fee_minor, order.order.currency)}
+              </strong>
+            </div>
+            <div className="summary-rule" />
+            <div className="summary-row total-row">
+              <span>Final payable amount</span>
+              <strong>
+                {order.order.status === "manual_review" || order.delivery.status === "manual_review"
+                  ? "Pending review"
+                  : formatMoney(order.order.total_minor, order.order.currency)}
+              </strong>
+            </div>
             <p>Payment: {order.order.payment_method} · {order.order.payment_status}</p>
+            {(order.order.status === "manual_review" || order.delivery.status === "manual_review") && (
+              <p>Delivery fee and final payable amount will be confirmed after address and fulfilment review. This request is not yet a confirmed order.</p>
+            )}
           </aside>
         </section>
       )}
