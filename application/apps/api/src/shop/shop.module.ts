@@ -282,6 +282,14 @@ class CheckoutController {
     @Headers("idempotency-key") key: string | undefined,
     @Req() request: Request,
   ) {
+    // COD/Eixon-only policy is still awaiting one authoritative ruling.
+    // Keep checkout fail-closed unless the approved runtime config explicitly enables it.
+    if (process.env.SHOP_GUEST_CHECKOUT_ENABLED !== "true") {
+      throw new ServiceUnavailableException({
+        code: "SHOP_CHECKOUT_DISABLED",
+        message: "Checkout is disabled until the authoritative Shop payment policy is reconciled and approved.",
+      });
+    }
     if (body?.paymentMethod !== undefined && body.paymentMethod !== "cod") {
       throw new ServiceUnavailableException({
         code: body.paymentMethod === "eixon_wallet" ? "EIXON_INTEGRATION_UNAVAILABLE" : "PAYMENT_METHOD_NOT_ENABLED",
