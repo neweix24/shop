@@ -206,3 +206,30 @@ The preview URL is `https://feat-shop-ecosystem-remediat.neweix-shop-preview.pag
 8. Replace browser-local order requests with durable server-side order state. Preserve guest tracking only through the existing high-entropy Order ID + checkout phone controls.
 9. Add review persistence, order event/audit trail, return lifecycle, notifications, image storage and support workflows only through explicit Shop-owned schemas and approved service contracts.
 10. Build the approved production runtime, bind secrets server-side, run security/IDOR tests and migration rollback/restore tests, then pass the Supreme registry transition and production smoke-test gates before deploying the existing www custom domain.
+
+
+## 12. Deployment target research: Next.js + NestJS on the existing Cloudflare estate
+
+The user's approved architecture target is a Next.js storefront with a NestJS modular monolith API. The current legacy Vite/React + Express/tRPC server is not the production target.
+
+The current Neweix HQ Cloudflare Pages project provides a usable reference for deploying Next.js with OpenNext/Cloudflare. Shop should follow the same Next.js deployment approach for the storefront rather than making the Vite preview its production foundation.
+
+NestJS runtime decision:
+- Nest's official Cloudflare Workers FAQ says Nest can run inside Workers, but it is not officially supported and is rarely the best fit. It describes Nest as a backend that typically runs as a long-lived Node.js process.
+- Cloudflare's documented option for a long-running containerized backend is Workers + Cloudflare Containers, with the Worker routing requests to the container.
+- Cloudflare Containers documentation states that Containers are available on the Workers Paid plan. The Cloudflare account's current plan entitlement has not yet been confirmed.
+
+Recommended target:
+1. Next.js storefront on the approved Cloudflare/OpenNext route.
+2. NestJS modular monolith API in a long-running Node.js runtime; Cloudflare Container is a candidate only after confirming Workers Paid entitlement and costs. A separate approved Node host is the fallback if Containers are unavailable.
+3. The existing `neweix-shop` Worker remains the public edge entry point and should route to the verified API runtime after the service is ready. Do not replace its current 503 placeholder until the staging API and its health/security tests exist.
+4. NestJS modules should own Shop catalog, inventory, cart, orders, delivery, returns and support. Payment orchestration must call Eixon's approved API; Account remains the identity provider; Admin permissions must be verified through the approved delegated grant contract.
+5. NestJS must not connect directly to Eixon, Account or Supreme private schemas. Use versioned APIs/service identities and audit references.
+
+Research references:
+- NestJS Cloudflare Workers guidance: https://docs.nestjs.com/faq/cloudflare-workers
+- Cloudflare Node.js compatibility: https://developers.cloudflare.com/workers/runtime-apis/nodejs/
+- Cloudflare Containers overview and plan availability: https://developers.cloudflare.com/containers/
+- Cloudflare Containers deployment: https://developers.cloudflare.com/containers/guides/deploy/
+
+No paid plan, new runtime, production Worker, or domain configuration has been activated as part of this research.
