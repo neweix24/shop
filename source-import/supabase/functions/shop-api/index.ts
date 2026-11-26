@@ -16,7 +16,6 @@ function json(body: unknown, status = 200) {
 }
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 function serviceClient() {
@@ -73,7 +72,7 @@ Deno.serve(async (request: Request) => {
     return json({
       service: "shop-api",
       status: "ok",
-      capabilities: ["catalog-read", "account-order-read", "guest-order-tracking", "guest-cod-checkout"],
+      capabilities: ["catalog-read", "guest-order-tracking", "guest-cod-checkout"],
       paymentMethods: {
         cod: "manual-review",
         eixon_wallet: "disabled-until-eixon-service-restored-and-contract-approved",
@@ -82,6 +81,23 @@ Deno.serve(async (request: Request) => {
         card: "disabled-until-gateway-and-legal-approval",
       },
     });
+  }
+
+  if (request.method === "GET" && path === "/ready") {
+    try {
+      const client = serviceClient();
+      const { count, error } = await client
+        .from("shop_products")
+        .select("id", { count: "exact", head: true });
+      if (error) return json({ service: "shop-api", status: "not_ready", dependency: "database" }, 503);
+      return json({
+        service: "shop-api",
+        status: "ready",
+        catalog: count && count > 0 ? "available" : "empty",
+      });
+    } catch {
+      return json({ service: "shop-api", status: "not_ready", dependency: "database" }, 503);
+    }
   }
 
   if (request.method === "GET" && path === "/products") {
@@ -126,22 +142,13 @@ Deno.serve(async (request: Request) => {
   }
 
   if (request.method === "GET" && path === "/orders") {
-    const authorization = request.headers.get("Authorization");
-    if (!authorization?.startsWith("Bearer ")) return json({ error: "Authentication required." }, 401);
-    const token = authorization.slice(7);
-    const client = createClient(supabaseUrl, anonKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data: { user }, error: authError } = await client.auth.getUser(token);
-    if (authError || !user) return json({ error: "Authentication required." }, 401);
-    const { data, error } = await client
-      .from("shop_orders")
-      .select("id,order_number,status,currency,subtotal_minor,delivery_fee_minor,total_minor,payment_method,payment_status,created_at")
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (error) return json({ error: "Orders are temporarily unavailable." }, 503);
-    return json({ orders: data ?? [] });
+    // Neweix Account is the only identity authority. Do not accept Supabase Auth
+    // identities as a substitute; enable this route only after Account SSO and
+    // the approved token-validation adapter are implemented and verified.
+    return json({
+      error: "Account order access is not configured yet.",
+      code: "ACCOUNT_SSO_NOT_CONFIGURED",
+    }, 503);
   }
 
   if (request.method === "POST" && path === "/track") {
