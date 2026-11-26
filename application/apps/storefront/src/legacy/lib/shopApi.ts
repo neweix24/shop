@@ -169,3 +169,8 @@ export async function trackGuestOrder(orderId: string, phone: string): Promise<G
   }
   return payload;
 }
+
+export async function fetchShopStatus(): Promise<boolean> {
+  const payload = await requestJson<{ guestCodCheckoutEnabled?: boolean }>("/checkout/status");
+  return payload.guestCodCheckoutEnabled === true;
+}
