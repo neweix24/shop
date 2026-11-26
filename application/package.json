@@ -6,5 +6,11 @@
     "check": "pnpm --filter @neweix/shop-storefront check && pnpm --filter @neweix/shop-api check",
     "test": "pnpm --filter @neweix/shop-storefront test && pnpm --filter @neweix/shop-api test",
     "build": "pnpm --filter @neweix/shop-storefront build && pnpm --filter @neweix/shop-api build"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@tailwindcss/oxide",
+      "esbuild"
+    ]
   }
 }
