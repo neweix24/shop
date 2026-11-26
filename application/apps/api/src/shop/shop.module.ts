@@ -276,6 +276,13 @@ class CatalogController {
 class CheckoutController {
   constructor(private readonly checkout: CheckoutService) {}
 
+  @Get("status")
+  status() {
+    return {
+      guestCodCheckoutEnabled: process.env.SHOP_GUEST_CHECKOUT_ENABLED === "true",
+    };
+  }
+
   @Post("cod")
   create(
     @Body() body: Parameters<CheckoutService["createGuestCodOrder"]>[0],
