@@ -37,16 +37,30 @@ Pathao API credentials, coverage, pricing, booking, and tracking have not been v
 
 GitHub Actions validates the imported frontend TypeScript, unit tests, production build, and the Shop Edge Function Deno types. A successful build or healthy read-only API is not a production release.
 
+### Live production gate audit (2026-11-26)
+
+A read-only audit of the shared Supreme registry and Cloudflare account confirmed:
+
+- Supreme registry service `neweix` is active and points to `neweix24/neweix`, with an enabled production environment.
+- Supreme registry service `neweix-shop` is still planned. Its only registered environment is disabled development; it has no API base URL and no registered capabilities.
+- Supreme's ecosystem capability inventory still describes Neweix as the commerce-and-operations owner. A Supreme governance decision is required before treating the separate Shop repository as the canonical production commerce owner.
+- Cloudflare Custom Domain `www.shop.neweix.com` is already enabled and mapped to Worker `neweix-shop` in its production environment. Its DNS record is Cloudflare-managed; no ordinary Worker Route is expected for this Custom Domain.
+- The deployed `neweix-shop` Worker code is still a placeholder that returns HTTP 503. The hostname being provisioned does not mean the storefront is deployed.
+- A governance decision request was opened in [Supreme issue #73](https://github.com/neweix24/supreme/issues/73). This request does not itself approve or execute a production change.
+
+Do not activate the registry service, publish a product-management API, or replace the production Worker until Supreme confirms canonical ownership, approves the production contract and capability allow-list, and the Admin authorization contract is implemented and tested.
+
 ## Remaining production blockers
 
 1. Rebuild the legacy Vite/Express starter into the approved Next.js/NestJS architecture.
-2. Register and test Neweix Account SSO with exact production redirect URIs and PKCE.
-3. Supply and publish real Shop products, variant SKUs, BDT prices, images, and verified inventory through an authorized admin workflow. No sample products or prices may be invented.
-4. Resolve the canonical commerce ownership conflict with the Supreme service registry before production traffic is switched.
-5. Restore Eixon service, approve the Shop payment contract, and test Eixon Wallet end to end.
-6. Obtain and approve bKash/Nagad/card gateway integrations before enabling them.
-7. Verify Pathao credentials, official geography coverage, quotes, booking, tracking, and return workflows.
-8. Configure Connect notifications, operational monitoring, backups, and production smoke tests.
-9. Replace the Cloudflare 503 placeholder and deploy the storefront only after the release gates above pass.
+2. Obtain Supreme's canonical commerce ownership and production service-registration decision (tracked in [Supreme issue #73](https://github.com/neweix24/supreme/issues/73)).
+3. Define and implement the Supreme-approved delegated Admin identity/grant contract and service-side authorization tests before product publishing is enabled.
+4. Register and test Neweix Account SSO with exact production redirect URIs and PKCE.
+5. Supply real Shop products, variant SKUs, BDT prices, images, and verified inventory through an authorized admin workflow. No sample products or prices may be invented.
+6. Restore Eixon service, approve the Shop payment contract, and test Eixon Wallet end to end.
+7. Obtain and approve bKash/Nagad/card gateway integrations before enabling them.
+8. Verify Pathao credentials, official geography coverage, quotes, booking, tracking, and return workflows.
+9. Configure Connect notifications, operational monitoring, backups, and production smoke tests.
+10. Replace the Cloudflare 503 placeholder and deploy the storefront only after the release gates above pass. The `www.shop.neweix.com` Custom Domain is already configured.
 
 The production Shop URL is intended to be `https://www.shop.neweix.com`. Do not claim production readiness or switch production traffic before the blockers above are closed.
