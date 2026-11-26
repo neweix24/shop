@@ -70,3 +70,6 @@ jobs:
       - name: Production builds
         working-directory: application
         run: pnpm build
+
+      - name: Build the NestJS API container image
+        run: docker build --file application/Dockerfile.api --tag neweix-shop-api:ci .
