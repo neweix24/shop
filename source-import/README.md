@@ -64,3 +64,12 @@ Do not activate the registry service, publish a product-management API, or repla
 10. Replace the Cloudflare 503 placeholder and deploy the storefront only after the release gates above pass. The `www.shop.neweix.com` Custom Domain is already configured.
 
 The production Shop URL is intended to be `https://www.shop.neweix.com`. Do not claim production readiness or switch production traffic before the blockers above are closed.
+
+
+### Supreme decision update (2026-11-26)
+
+The canonical ownership direction has been confirmed by the Neweix owner: `neweix24/shop` is intended to become the independent Commerce Service, and `https://www.shop.neweix.com` remains the production hostname. This direction is recorded in [Supreme issue #73](https://github.com/neweix24/supreme/issues/73).
+
+This ChatGPT confirmation is not a substitute for the Supreme app's required fresh AAL2, device-bound ruler authorization. The Supreme registry must be changed through its protected control plane; no direct database bypass is permitted. Until that authenticated control request is approved, the registry transition is not complete.
+
+Production is still blocked: the Cloudflare Worker returns HTTP 503, the imported storefront is legacy Vite/React + Express/tRPC rather than the approved Next.js/NestJS target, the live catalog is empty, and the Shop Admin grant contract has not been implemented and tested. Keep production traffic and product publishing disabled until those gates pass.
