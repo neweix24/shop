@@ -4,11 +4,12 @@ WORKDIR /workspace
 RUN npm install --global pnpm@10.18.0
 
 COPY application/package.json ./package.json
+COPY application/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY application/pnpm-workspace.yaml ./pnpm-workspace.yaml
 COPY application/apps/api/package.json ./apps/api/package.json
 COPY application/apps/storefront/package.json ./apps/storefront/package.json
 
-RUN pnpm install --filter @neweix/shop-api --no-frozen-lockfile
+RUN pnpm install --filter @neweix/shop-api --frozen-lockfile
 
 COPY application/apps/api ./apps/api
 RUN pnpm --filter @neweix/shop-api build
