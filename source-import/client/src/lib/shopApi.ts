@@ -1,9 +1,42 @@
 const DEFAULT_API_URL = "https://grhybvlhdnzlopwbaqun.supabase.co/functions/v1/shop-api";
 const PRODUCT_PLACEHOLDER = "/images/shop-product-placeholder.svg";
 
+/**
+ * Resolves the API origin for a Vite build mode.
+ *
+ * Preview and test builds must not silently fall back to the production Shop API.
+ * Configure an isolated staging API explicitly when one exists.
+ */
+export function resolveShopApiUrl(mode: string, configured?: string): string {
+  const value = configured?.trim();
+
+  if (!value) {
+    if (mode === "production") return DEFAULT_API_URL;
+    throw new Error("SHOP_API_NOT_CONFIGURED");
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error("SHOP_API_URL_INVALID");
+  }
+
+  if (
+    parsed.protocol !== "https:" &&
+    !(mode === "development" && ["localhost", "127.0.0.1"].includes(parsed.hostname))
+  ) {
+    throw new Error("SHOP_API_URL_MUST_USE_HTTPS");
+  }
+
+  return parsed.toString().replace(/\/$/, "");
+}
+
 function apiUrl() {
-  const configured = import.meta.env.VITE_SHOP_API_URL?.trim();
-  return (configured || DEFAULT_API_URL).replace(/\/$/, "");
+  return resolveShopApiUrl(
+    import.meta.env.MODE,
+    import.meta.env.VITE_SHOP_API_URL
+  );
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
