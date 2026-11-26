@@ -40,3 +40,14 @@ The static app keeps the ZIP-derived Wouter routes with a Pages `_redirects` fal
 
 
 Preview deployment trigger reconfigured to rebuild this branch on every push while production deploys remain disabled.
+
+
+## API security and checkout release gate (2026-11-26)
+
+- NestJS JSON and URL-encoded request bodies are capped at 16 KiB before controller logic.
+- API responses receive baseline browser security headers and no-store caching. CORS uses exact configured HTTPS origins; HTTP localhost is permitted only outside production.
+- The server-side Supabase adapter accepts HTTPS `.supabase.co` project hosts in production (localhost HTTP is development-only), rejects URL credentials/query/hash/path overrides and redirects, and applies an eight-second upstream timeout.
+- Catalog reads are bounded to 100 rows. Unsafe/negative prices are excluded; malformed or missing inventory is shown as zero stock.
+- Guest COD is blocked by a source-level release gate. Setting `SHOP_GUEST_CHECKOUT_ENABLED=true` cannot enable it. The payment-policy decision, Supreme-approved Admin grant, audited order lifecycle, inventory reservation release, and verified delivery fee/fulfilment remain unresolved.
+
+These are source changes only. No live API, Supabase database, Production Worker, domain, or Supreme registry has been changed.
