@@ -73,3 +73,17 @@ The canonical ownership direction has been confirmed by the Neweix owner: `newei
 This ChatGPT confirmation is not a substitute for the Supreme app's required fresh AAL2, device-bound ruler authorization. The Supreme registry must be changed through its protected control plane; no direct database bypass is permitted. Until that authenticated control request is approved, the registry transition is not complete.
 
 Production is still blocked: the Cloudflare Worker returns HTTP 503, the imported storefront is legacy Vite/React + Express/tRPC rather than the approved Next.js/NestJS target, the live catalog is empty, and the Shop Admin grant contract has not been implemented and tested. Keep production traffic and product publishing disabled until those gates pass.
+
+
+## Full application preview deployment
+
+The complete imported application is built from this directory for a separate Cloudflare Pages preview project:
+
+- Project: `neweix-shop-preview`
+- Preview branch: `neweix24-patch-1`
+- Build command: `pnpm build:static`
+- Output directory: `dist/public`
+- Preview hostname: `https://neweix-shop-preview.pages.dev`
+- Production deployments are disabled; this project does not own or change `www.shop.neweix.com`.
+
+This is a frontend preview, not a production release. The catalog is loaded from the Shop API and currently has no published products. Checkout, Account SSO, Eixon, payment providers, delivery quotes, and Admin publishing remain subject to the production gates above. No demo product data or payment success is fabricated.
