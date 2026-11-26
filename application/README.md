@@ -24,3 +24,16 @@ Storefront:
 - Preview intentionally omits this value and cannot read or mutate Production data.
 
 Run from this directory: `pnpm install`, `pnpm check`, `pnpm test`, `pnpm build`.
+
+
+## Cloudflare Pages preview
+
+The separate project `neweix-shop-preview` builds only this Next.js storefront workspace:
+- Root: `application`
+- Command: `pnpm --filter @neweix/shop-storefront build`
+- Output: `apps/storefront/out`
+- Node: `22.16.0`
+- Production deployments: disabled
+- Preview API URL: intentionally unset; therefore no Production Shop data is requested.
+
+The static app keeps the ZIP-derived Wouter routes with a Pages `_redirects` fallback. API traffic must not be enabled in Preview until a dedicated staging API exists.
