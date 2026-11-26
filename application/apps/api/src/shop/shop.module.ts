@@ -17,6 +17,7 @@ import type { Request } from "express";
 import { createHash } from "node:crypto";
 import { SupabaseRestError, SupabaseRestService } from "../database/supabase-rest.service";
 import { normalizeBangladeshPhone } from "../common/phone";
+import { isGuestCodCheckoutEnabled } from "../common/feature-flags";
 
 const ORDER_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -279,7 +280,7 @@ class CheckoutController {
   @Get("status")
   status() {
     return {
-      guestCodCheckoutEnabled: process.env.SHOP_GUEST_CHECKOUT_ENABLED === "true",
+      guestCodCheckoutEnabled: isGuestCodCheckoutEnabled(),
     };
   }
 
@@ -291,7 +292,7 @@ class CheckoutController {
   ) {
     // COD/Eixon-only policy is still awaiting one authoritative ruling.
     // Keep checkout fail-closed unless the approved runtime config explicitly enables it.
-    if (process.env.SHOP_GUEST_CHECKOUT_ENABLED !== "true") {
+    if (!isGuestCodCheckoutEnabled()) {
       throw new ServiceUnavailableException({
         code: "SHOP_CHECKOUT_DISABLED",
         message: "Checkout is disabled until the authoritative Shop payment policy is reconciled and approved.",
