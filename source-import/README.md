@@ -87,3 +87,6 @@ The complete imported application is built from this directory for a separate Cl
 - Production deployments are disabled; this project does not own or change `www.shop.neweix.com`.
 
 This is a frontend preview, not a production release. The catalog is loaded from the Shop API and currently has no published products. Checkout, Account SSO, Eixon, payment providers, delivery quotes, and Admin publishing remain subject to the production gates above. No demo product data or payment success is fabricated.
+
+
+Preview build configuration was restricted to the approved preview branch; production deployments remain disabled.
