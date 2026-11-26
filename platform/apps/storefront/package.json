@@ -1,0 +1,25 @@
+{
+  "name": "@neweix/shop-web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "build:worker": "opennextjs-cloudflare build",
+    "check": "tsc --noEmit",
+    "preview:worker": "wrangler dev"
+  },
+  "dependencies": {
+    "next": "16.4.6",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@opennextjs/cloudflare": "1.20.19",
+    "@types/node": "22.15.30",
+    "@types/react": "19.3.3",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.3",
+    "wrangler": "4.168.0"
+  }
+}

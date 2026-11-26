@@ -1,0 +1,50 @@
+name: Shop Next Nest platform validation
+
+on:
+  push:
+    branches:
+      - feat/shop-next-nest-platform-foundation
+    paths:
+      - platform/**
+      - .github/workflows/validate-platform.yml
+  pull_request:
+    branches:
+      - feat/shop-ecosystem-remediation
+    paths:
+      - platform/**
+      - .github/workflows/validate-platform.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shop-platform-validation-\${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: platform
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install platform workspace dependencies
+        run: npm install --package-lock=false --no-audit --no-fund
+      - name: TypeScript checks
+        run: npm run check
+      - name: API unit tests
+        run: npm run test
+      - name: Build NestJS API
+        run: npm run build:api
+      - name: Build Next.js storefront
+        run: npm run build:web
+      - name: Build Cloudflare OpenNext Worker bundle
+        run: npm run build:worker
