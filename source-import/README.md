@@ -90,3 +90,7 @@ This is a frontend preview, not a production release. The catalog is loaded from
 
 
 Preview build configuration was restricted to the approved preview branch; production deployments remain disabled.
+
+## Preview API isolation
+
+The Cloudflare Pages project `neweix-shop-preview` builds this source with `pnpm build:static --mode preview`. In preview mode, the browser client does not fall back to the production Shop API when `VITE_SHOP_API_URL` is absent. A dedicated isolated staging API must be explicitly configured before preview catalog, checkout, or tracking requests are enabled. This prevents a preview UI from reading or mutating production Shop data by accident.
