@@ -18,7 +18,7 @@ import type { Request } from "express";
 import { createHash } from "node:crypto";
 import { SupabaseRestError, SupabaseRestService } from "../database/supabase-rest.service";
 import { normalizeBangladeshPhone } from "../common/phone";
-import { isGuestCodCheckoutEnabled } from "../common/feature-flags";
+import { getGuestCheckoutStatus, isGuestCodCheckoutEnabled } from "../common/feature-flags";
 
 const ORDER_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -75,6 +75,7 @@ class CatalogService {
         select: "id,slug,title,description,category,image_url,is_featured,currency,shop_product_variants(id,sku,title,unit_price_minor,is_active,shop_inventory(quantity_on_hand,quantity_reserved))",
         status: "eq.active",
         order: "created_at.desc",
+        limit: "100",
       });
       const rows = await this.db.select<RawProduct[]>("shop_products", query);
       const products = (rows ?? []).map(product => ({
@@ -88,19 +89,27 @@ class CatalogService {
         currency: product.currency,
         shop_product_variants: (product.shop_product_variants ?? [])
           .filter(variant => variant.is_active)
-          .map(variant => {
+          .flatMap(variant => {
+            const unitPrice = Number(variant.unit_price_minor);
+            if (!Number.isSafeInteger(unitPrice) || unitPrice < 0) return [];
             const inventory = Array.isArray(variant.shop_inventory)
               ? variant.shop_inventory[0]
               : variant.shop_inventory;
-            return {
+            const onHand = Number(inventory?.quantity_on_hand);
+            const reserved = Number(inventory?.quantity_reserved);
+            const inventoryValid =
+              Number.isSafeInteger(onHand) &&
+              Number.isSafeInteger(reserved) &&
+              onHand >= 0 &&
+              reserved >= 0 &&
+              reserved <= onHand;
+            return [{
               id: variant.id,
               title: variant.title,
-              unit_price_minor: Number(variant.unit_price_minor),
+              unit_price_minor: unitPrice,
               is_active: true,
-              stock: inventory
-                ? Math.max(0, inventory.quantity_on_hand - inventory.quantity_reserved)
-                : 0,
-            };
+              stock: inventoryValid ? onHand - reserved : 0,
+            }];
           }),
       })).filter(product => product.shop_product_variants.length > 0);
       return { products };
@@ -286,9 +295,7 @@ class CheckoutController {
 
   @Get("status")
   status() {
-    return {
-      guestCodCheckoutEnabled: isGuestCodCheckoutEnabled(),
-    };
+    return getGuestCheckoutStatus();
   }
 
   @Post("cod")
