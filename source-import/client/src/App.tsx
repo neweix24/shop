@@ -2188,20 +2188,32 @@ function Storefront() {
 
 function AuthCallback() {
   useEffect(() => {
-    window.history.replaceState({}, "", "/account");
+    // No Account OIDC client is registered for Shop yet. Do not process an
+    // unsolicited callback or leave authorization codes/tokens in browser history.
+    window.history.replaceState({}, "", window.location.pathname);
   }, []);
   return (
     <PageFrame
       eyebrow="Account access"
-      title="Finishing sign in"
-      intro="Your secure callback is being restored. If you are not redirected, open your account manually."
+      title="Account sign-in is not connected"
+      intro="Neweix Account SSO has not been registered and verified for Shop yet. No login session was created from this callback."
     >
-      <div className="loading-state">
-        <div className="spinner" />
-        <span>Restoring your session…</span>
-        <Link href="/account" className="text-link">
-          Continue to account <ArrowRight size={15} />
-        </Link>
+      <div className="empty-state">
+        <div className="empty-mark">✦</div>
+        <h2>Guest shopping is still available</h2>
+        <p>
+          You can browse the catalogue and use guest checkout where a published
+          product is available. Account-only features remain unavailable until
+          the approved first-party SSO integration is enabled.
+        </p>
+        <div className="empty-actions">
+          <Link href="/shop" className="button button-dark">
+            Continue shopping <ArrowRight size={15} />
+          </Link>
+          <Link href="/account" className="button button-quiet">
+            View account status
+          </Link>
+        </div>
       </div>
     </PageFrame>
   );
