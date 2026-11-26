@@ -133,3 +133,76 @@ The `employees` repository currently contains only domain documentation. Do not 
 This audit used repository, branch, issue, Cloudflare, and Supabase read-only evidence. It did not apply database migrations, create products or inventory, register OAuth clients, grant Admin access, modify Supreme registry records, change DNS, alter the production Worker, or enable any payment/delivery integration.
 
 A production release is not authorized merely because the owner-approved direction is recorded in an issue comment. The protected Supreme control-plane decision and service-level release tests remain mandatory.
+
+
+## 9. Additional source-level findings confirmed after baseline
+
+### Authentication callback is intentionally non-functional until Account SSO exists
+
+The current source was checked directly after the baseline audit:
+- `server/_core/oauth.ts` has retired the legacy Manus OAuth callback and returns HTTP 410 with `ACCOUNT_SSO_NOT_CONFIGURED`.
+- `server/_core/context.ts` always returns `user: null`; it does not authenticate a customer or Admin.
+- `server/routers.ts` only exposes starter `auth.me` and `auth.logout` procedures; there is no working Shop sign-in implementation.
+- The client sign-in/sign-up screens explicitly state that Account SSO is unavailable.
+- The prior `/auth/callback` screen incorrectly claimed to restore a session. It has now been corrected to state that no session was created, and it removes query parameters from browser history without exchanging or trusting callback data.
+
+Therefore no Shop login or authenticated order API is active. This is a deliberate fail-closed state, not a functioning SSO integration.
+
+### Preview environment isolation
+
+The original client API resolver defaulted to the production Supabase Shop API for any Vite build mode. This meant a preview deployment without an explicit API override could silently call the production Shop service.
+
+The remediation branch now:
+- resolves the production API fallback only for Vite `production` mode;
+- requires an explicit HTTPS API URL for preview/test modes;
+- permits HTTP only for localhost during local development;
+- has unit tests for production default, explicit staging URL, preview fail-closed behavior, invalid URL, HTTPS enforcement, and local development.
+- configures the separate Pages preview project to build with `--mode preview` and disables production deployment for that project.
+
+No staging Shop API has been provisioned. The preview therefore displays a persistent explanatory notice and does not request production products, track production orders, or submit production checkouts.
+
+### Importer safety remediation
+
+The original ZIP importer deleted and recreated `source-import/` and used `rsync --delete`. The remediation branch replaced that behavior with a validated, temporary extraction and non-destructive, conflict-failing import:
+- CRC, path traversal, symlink and special-file checks;
+- exclusions for secret files, VCS metadata, generated output, nested archives, dependencies and backup/debug files;
+- identical existing files are preserved;
+- different existing files cause a conflict and stop the import;
+- only new files are added;
+- the archive is not deleted;
+- the workflow now checks out and pushes to the selected branch rather than hard-coding the old import branch.
+
+The import workflow itself has not yet been run against a new archive in this remediation branch; the normal source validation workflow does not execute the ZIP importer. A separate controlled test of the importer is still required before relying on it for another upload.
+
+## 10. Remediation work recorded on `feat/shop-ecosystem-remediation`
+
+- `d72fad0` — ecosystem research baseline report.
+- `6555cac` — non-destructive ZIP importer.
+- `6942f43` — branch-aware Shop validation workflow.
+- `803562d` — preview API isolation guard.
+- `827fac9` — API URL resolver tests.
+- `09b5a58` — preview API isolation documentation.
+- `1991f74` — honest Account callback state.
+- `389026e` — persistent preview catalogue/API configuration notice.
+
+Observed GitHub Actions validation:
+- Run #86, `45837317190`: importer/workflow changes with Deno check, TypeScript, tests and production build — passed.
+- Run #89, `45837882359`: preview API resolver tests and production build — passed.
+- Run #90, `45838640787`: Account callback and persistent catalogue/API notice changes, Deno check, TypeScript, tests and production build — passed.
+
+Cloudflare Pages project `neweix-shop-preview` currently builds branch `feat/shop-ecosystem-remediation` using `pnpm build:static --mode preview`. Its latest verified preview deployment is `07fa35e1-0668-4024-9507-265fb9244901`, with successful build and deploy stages. The project has `production_deployments_enabled=false`; the custom domain `www.shop.neweix.com` and production Worker were not changed.
+
+The preview URL is `https://feat-shop-ecosystem-remediat.neweix-shop-preview.pages.dev`. Cloudflare API confirms the deployment and uploaded frontend assets; independent browser rendering could not be verified from this session.
+
+## 11. Remaining high-priority implementation gaps
+
+1. Agree and document the single authoritative Shop checkout policy. The Supreme-authority audit says Eixon-only and excludes COD unless policy changes; prior owner instructions and the current API treat guest COD as allowed. Do not silently reconcile this by code changes.
+2. Replace the legacy Vite/React + Express/tRPC starter as the production application with the approved Next.js + NestJS modular architecture, preserving and porting useful ZIP UI components.
+3. Define the approved Account OIDC client, PKCE flow, issuer/audience/JWKS, redirects, scopes, claims, revocation and user-service access contract. Then test customer-owned order access.
+4. Define the Shop Admin identity/grant contract through Supreme/Employees; add server-side product and inventory operations with deny-by-default authorization, auditable grants, and access tests.
+5. Keep product publishing disabled until Admin grants are verified. The catalog is empty; do not seed invented products or stock.
+6. Define and test a versioned Eixon Shop payment API only after the checkout policy is approved; keep a single financial ledger in Eixon.
+7. Replace sample district/upazila/union data with an approved, verified geography source; configure and test Pathao only with real provider credentials and coverage responses.
+8. Replace browser-local order requests with durable server-side order state. Preserve guest tracking only through the existing high-entropy Order ID + checkout phone controls.
+9. Add review persistence, order event/audit trail, return lifecycle, notifications, image storage and support workflows only through explicit Shop-owned schemas and approved service contracts.
+10. Build the approved production runtime, bind secrets server-side, run security/IDOR tests and migration rollback/restore tests, then pass the Supreme registry transition and production smoke-test gates before deploying the existing www custom domain.
