@@ -2025,6 +2025,7 @@ function EmptyState({
 function Storefront() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notice, setNotice] = useState("");
+  const [catalogNotice, setCatalogNotice] = useState<string | null>(null);
   const [, setCatalogRevision] = useState(0);
   const { cart, wishlist } = useStoreState();
   const auth = useAuth();
@@ -2036,6 +2037,7 @@ function Storefront() {
       .then(remoteProducts => {
         if (!active) return;
         setCatalogProducts(remoteProducts);
+        setCatalogNotice(null);
         const available = remoteProducts.flatMap(product =>
           product.variants.map(variant => ({
             productId: product.id,
@@ -2054,9 +2056,16 @@ function Storefront() {
         setCatalogRevision(value => value + 1);
       })
       .catch(cause => {
-        if (active) {
-          setNotice(cause instanceof Error ? cause.message : "Shop catalog is temporarily unavailable.");
-        }
+        if (!active) return;
+        const code = cause instanceof Error ? cause.message : "";
+        const message =
+          code === "SHOP_API_NOT_CONFIGURED"
+            ? "This preview is intentionally isolated from live Shop data. No staging API is connected, so products, stock, checkout and tracking are unavailable here."
+            : code === "SHOP_API_URL_INVALID" ||
+                code === "SHOP_API_URL_MUST_USE_HTTPS"
+              ? "The configured Shop API endpoint is invalid or does not meet the HTTPS requirement."
+              : "The Shop catalogue could not be loaded. No product or stock information is being shown as available.";
+        setCatalogNotice(message);
       });
     return () => {
       active = false;
@@ -2076,6 +2085,13 @@ function Storefront() {
         userName={auth.user?.name}
         onLogout={() => void auth.logout()}
       />
+      {catalogNotice && (
+        <div className="page-frame">
+          <div className="form-note" role="status">
+            {catalogNotice}
+          </div>
+        </div>
+      )}
       <Switch>
         <Route path="/" component={() => <HomePage onNotify={notify} />} />
         <Route path="/shop" component={() => <ShopPage onNotify={notify} />} />
