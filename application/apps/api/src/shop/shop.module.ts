@@ -11,7 +11,8 @@ import {
   Headers,
   Req,
   ServiceUnavailableException,
-  TooManyRequestsException,
+  HttpException,
+  HttpStatus,
 } from "@nestjs/common";
 import type { Request } from "express";
 import { createHash } from "node:crypto";
@@ -20,6 +21,12 @@ import { normalizeBangladeshPhone } from "../common/phone";
 import { isGuestCodCheckoutEnabled } from "../common/feature-flags";
 
 const ORDER_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+class TooManyRequestsException extends HttpException {
+  constructor(message: string) {
+    super(message, HttpStatus.TOO_MANY_REQUESTS);
+  }
+}
 
 @Injectable()
 class ShopRateLimit {
