@@ -88,7 +88,8 @@ Deno.serve(async (request: Request) => {
       const client = serviceClient();
       const { count, error } = await client
         .from("shop_products")
-        .select("id", { count: "exact", head: true });
+        .select("id", { count: "exact", head: true })
+        .eq("status", "active");
       if (error) return json({ service: "shop-api", status: "not_ready", dependency: "database" }, 503);
       return json({
         service: "shop-api",
