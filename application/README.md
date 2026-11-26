@@ -37,3 +37,6 @@ The separate project `neweix-shop-preview` builds only this Next.js storefront w
 - Preview API URL: intentionally unset; therefore no Production Shop data is requested.
 
 The static app keeps the ZIP-derived Wouter routes with a Pages `_redirects` fallback. API traffic must not be enabled in Preview until a dedicated staging API exists.
+
+
+Preview deployment trigger reconfigured to rebuild this branch on every push while production deploys remain disabled.
