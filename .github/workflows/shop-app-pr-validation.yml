@@ -1,0 +1,54 @@
+name: Shop application PR validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "application/**"
+      - ".github/workflows/shop-app-pr-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shop-app-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+
+      - name: Install pinned pnpm
+        run: |
+          npm install --global pnpm@10.18.0
+          pnpm --version
+
+      - name: Install locked workspace dependencies
+        working-directory: application
+        run: pnpm install --frozen-lockfile
+
+      - name: TypeScript checks
+        working-directory: application
+        run: pnpm check
+
+      - name: Unit tests
+        working-directory: application
+        run: pnpm test
+
+      - name: Production builds
+        working-directory: application
+        run: pnpm build
+
+      - name: Build NestJS API container
+        run: docker build --file application/Dockerfile.api --tag neweix-shop-api:ci .
