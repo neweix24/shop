@@ -50,3 +50,10 @@ Production status is tracked in [PRODUCTION-READINESS.md](./PRODUCTION-READINESS
 Supreme is the highest and final authority. Admin conducts day-to-day Shop operations within the Supreme-approved Admin grant. Shop must validate that grant server-side for product publishing and privileged order operations. The canonical rules are in the [Supreme Ecosystem Governance Charter](https://github.com/neweix24/supreme/blob/main/docs/ecosystem-governance-charter.md) and the repository-level [ECOSYSTEM_ALIGNMENT.md](../ECOSYSTEM_ALIGNMENT.md).
 
 Shop owns commerce data. Account owns customer identity. Eixon owns EIX and the ledger. Do not write directly to another service's private database.
+
+
+## Supreme governance and Admin operations
+
+Supreme is the highest and final authority. Admin conducts day-to-day Shop operations within the Supreme-approved Admin grant. Shop must validate that grant server-side for product publishing and privileged order operations. The canonical rules are in the [Supreme Ecosystem Governance Charter](https://github.com/neweix24/supreme/blob/main/docs/ecosystem-governance-charter.md) and the repository-level [ECOSYSTEM_ALIGNMENT.md](../ECOSYSTEM_ALIGNMENT.md).
+
+Shop owns commerce data. Account owns customer identity. Eixon owns EIX and the ledger. Do not write directly to another service's private database.
