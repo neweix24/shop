@@ -57,22 +57,16 @@ Deno.serve(async (request: Request) => {
   const path = url.pathname.startsWith("/shop-api") ? (url.pathname.slice(9) || "/") : url.pathname;
 
   if (request.method === "GET" && path === "/health") {
-    const guestCodCheckoutEnabled = isGuestCodCheckoutEnabled(Deno.env.get("SHOP_GUEST_CHECKOUT_ENABLED"));
+    const guestCodCheckoutEnabled = isGuestCodCheckoutEnabled();
     return json({
       service: "shop-api",
       status: "ok",
-      capabilities: [
-        "catalog-read",
-        "guest-order-tracking",
-        ...(guestCodCheckoutEnabled ? ["guest-cod-checkout"] : []),
-      ],
-      checkout: { guestCod: guestCodCheckoutEnabled ? "enabled" : "disabled" },
+      capabilities: ["catalog-read", "guest-order-tracking"],
+      checkout: { enabled: false, paymentPolicy: "eixon_only" },
       paymentMethods: {
-        cod: guestCodCheckoutEnabled ? "manual-review" : "disabled-until-order-operations-ready",
-        eixon_wallet: "disabled-until-eixon-service-restored-and-contract-approved",
-        bkash: "disabled-until-gateway-and-legal-approval",
-        nagad: "disabled-until-gateway-and-legal-approval",
-        card: "disabled-until-gateway-and-legal-approval",
+        cod: "not_allowed",
+        eixon: "disabled-until-approved-shop-payment-contract-is-implemented",
+        external_gateways: "not_allowed",
       },
     });
   }
@@ -179,7 +173,7 @@ Deno.serve(async (request: Request) => {
   if (request.method === "POST" && path === "/checkout") {
     if (!isGuestCodCheckoutEnabled(Deno.env.get("SHOP_GUEST_CHECKOUT_ENABLED"))) {
       return json({
-        error: "Guest COD checkout is paused until Shop order review, cancellation, and reserved-inventory release operations are implemented and verified.",
+        error: "Shop checkout is disabled. Eixon is the only approved payment route, and its server-to-server payment contract is not yet implemented and verified.",
         code: "SHOP_CHECKOUT_DISABLED",
       }, 503);
     }
@@ -188,7 +182,7 @@ Deno.serve(async (request: Request) => {
     const method = body.paymentMethod;
     if (method !== "cod") {
       const code = method === "eixon_wallet" ? "EIXON_INTEGRATION_UNAVAILABLE" : "PAYMENT_PROVIDER_NOT_APPROVED";
-      return json({ error: "This payment method is not active yet. Cash on Delivery is the only currently supported checkout route.", code }, 503);
+      return json({ error: "Only Eixon payment is permitted by Shop policy. No payment method is currently active.", code }, 503);
     }
     const guestName = typeof body.guestName === "string" ? body.guestName.trim() : "";
     const guestPhone = normalizeBangladeshPhone(body.phone);
