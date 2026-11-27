@@ -442,7 +442,7 @@ function HomePage({ onNotify }: { onNotify: (message: string) => void }) {
       <section className="hero-section">
         <div className="hero-copy">
           <span className="eyebrow hero-eyebrow">
-            The NEWEIX edit · 01 / 04
+            NEWEIX ECOSYSTEM · OFFICIAL STORE
           </span>
           <h1>
             A better edit of <em>everyday.</em>
