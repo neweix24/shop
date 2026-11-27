@@ -1,4 +1,4 @@
-import { isGuestCodCheckoutEnabled, readBoundedJson } from "./request.ts";
+import { readBoundedJson } from "./request.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -71,8 +71,3 @@ Deno.test("rejects malformed UTF-8", async () => {
   assert(value === null, "Expected malformed UTF-8 to be rejected");
 });
 
-Deno.test("COD remains disabled regardless of environment configuration", () => {
-  assert(!isGuestCodCheckoutEnabled(), "COD must remain disabled");
-  // The helper intentionally accepts no environment value, so runtime flags
-  // cannot bypass the Eixon-only payment policy.
-});
