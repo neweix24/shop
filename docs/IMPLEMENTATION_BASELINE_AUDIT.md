@@ -245,3 +245,27 @@ The checkout guardrails and request-hardening changes are committed on `feat/sho
 - Unapproved delivery claims have been removed. Pending manual-review orders show product subtotal, unconfirmed delivery fee, and pending final payable amount separately.
 - A new additive migration optimizes five Shop owner-read RLS policies with `(select auth.uid())`. It has not been applied to the live database because the migration-history query did not return the existing Shop migration versions.
 - CI run [#94](https://github.com/neweix24/shop/actions/runs/45840729259) passed TypeScript, Unit Tests, frontend Production Build, Edge Function type-check, and Deno request-guard tests. Cloudflare Pages Preview deployment [696f3098](https://696f3098.neweix-shop-preview.pages.dev) also succeeded from this commit. These changes do not alter the production Worker, domain, Supreme registry, live Edge Function, or live database.
+
+
+## 13. Owner policy and deployment update (2026-11-27)
+
+The owner has now explicitly confirmed the authoritative Shop payment policy: **Eixon only**. COD, wallet-to-wallet settlement inside Shop, bKash, Nagad, cards, and other external payment gateways are not approved Shop payment routes. Shop must create a payment intent through Eixon's approved server-to-server contract; Eixon remains the sole owner of EIX balances and the financial ledger.
+
+Repository changes on `feat/shop-ecosystem-remediation` now:
+- Make the legacy Shop Edge Function COD gate permanently return false; no environment variable can enable COD.
+- Change the Edge Function health response to report `paymentPolicy: eixon_only`, COD as not allowed, and Eixon as unavailable until the approved payment contract is implemented.
+- Update Deno tests to assert that COD cannot be enabled through runtime configuration.
+- Update the NestJS API release status and tests to express Eixon-only policy and retain a fail-closed checkout gate.
+- Update application documentation to remove the former COD-as-supported-route language.
+
+These are repository changes only. The live Supabase Edge Function and database have not been modified by these commits. The deployed Cloudflare Worker continues to serve the Storefront; its `/api` path intentionally returns 503 until a verified API runtime is deployed. The Worker does not yet execute the NestJS API.
+
+Current verified blockers remain:
+1. Eixon has no approved Shop payment intent/confirmation/refund/reconciliation API contract.
+2. Account has no registered Shop OIDC/PKCE client and tested token validation contract.
+3. Supreme has not completed the protected Shop service-registry ownership transition or issued a tested Shop Admin grant.
+4. Shop's active product, variant and inventory counts remain zero.
+5. Delivery pricing, Pathao credentials/coverage and order fulfilment acceptance are not verified.
+6. Production HTTP smoke test of `www.shop.neweix.com` remains unverified from this environment.
+
+No production checkout, payment, catalog publishing, or privileged Admin action is enabled.
