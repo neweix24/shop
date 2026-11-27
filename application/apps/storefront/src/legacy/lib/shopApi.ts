@@ -88,11 +88,10 @@ type ApiCatalogProduct = {
   }>;
 };
 
-export type GuestCodOrderResult = {
+export type EixonCheckoutResult = {
   id: string;
   order_number: number | string;
   status: string;
-  payment_method: "cod";
   payment_status: string;
   subtotal_minor: number;
   delivery_fee_minor: number;
@@ -137,7 +136,7 @@ export async function fetchCatalog() {
   });
 }
 
-export async function createGuestCodOrder(input: {
+export async function createEixonCheckout(input: {
   guestName: string;
   phone: string;
   address: {
@@ -152,13 +151,12 @@ export async function createGuestCodOrder(input: {
   note?: string;
   idempotencyKey: string;
 }) {
-  return requestJson<{ success: true; order: GuestCodOrderResult }>("/checkout/cod", {
+  return requestJson<EixonCheckoutResult>("/checkout", {
     method: "POST",
     body: JSON.stringify(input),
     headers: { "Idempotency-Key": input.idempotencyKey },
   });
 }
-
 export async function trackGuestOrder(orderId: string, phone: string): Promise<GuestOrderTracking> {
   const payload = await requestJson<GuestOrderTracking>("/tracking/guest", {
     method: "POST",
@@ -171,6 +169,6 @@ export async function trackGuestOrder(orderId: string, phone: string): Promise<G
 }
 
 export async function fetchShopStatus(): Promise<boolean> {
-  const payload = await requestJson<{ guestCodCheckoutEnabled?: boolean }>("/checkout/status");
-  return payload.guestCodCheckoutEnabled === true;
+  const payload = await requestJson<{ checkoutEnabled?: boolean; paymentPolicy?: string }>("/checkout/status");
+  return payload.checkoutEnabled === true && payload.paymentPolicy === "eixon_only";
 }
