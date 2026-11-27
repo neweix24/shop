@@ -171,7 +171,7 @@ Deno.serve(async (request: Request) => {
   }
 
   if (request.method === "POST" && path === "/checkout") {
-    if (!isGuestCodCheckoutEnabled(Deno.env.get("SHOP_GUEST_CHECKOUT_ENABLED"))) {
+    if (!isGuestCodCheckoutEnabled()) {
       return json({
         error: "Shop checkout is disabled. Eixon is the only approved payment route, and its server-to-server payment contract is not yet implemented and verified.",
         code: "SHOP_CHECKOUT_DISABLED",
