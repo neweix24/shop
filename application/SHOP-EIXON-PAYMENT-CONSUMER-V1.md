@@ -40,7 +40,7 @@ Do not store Eixon secret keys or customer access tokens in Shop rows or browser
 
 ## Mandatory blockers before implementation
 
-1. Supreme approval of the EIX denomination and BDT-to-EIX pricing/quote rule. No 1:1 assumption is permitted.
+1. **Resolved by Supreme on 2026-11-27:** the nominal denomination is 1 BDT = 1 EIX. Eixon must issue the authoritative quote using the exact BDT order amount, with no silently applied rounding or unapproved spread. If exact precision cannot be represented, reject the quote.
 2. Approval of eligible products/categories and exclusion rules.
 3. Approval of hold lifetime, inventory reservation, expiry, cancellation, and refund policies.
 4. Account issuer, audience, immutable subject, and service-client authentication contract.
@@ -48,7 +48,7 @@ Do not store Eixon secret keys or customer access tokens in Shop rows or browser
 6. Eixon webhook signing, key rotation, retry, and reconciliation contract.
 7. Verified delivery fee and fulfilment behavior.
 
-The current Shop catalog uses BDT minor-unit price fields while EIX is a Neweix-only utility token, not money. Shop must not independently convert BDT totals into EIX units. Until an Eixon quote policy is approved, the payment flow must reject and checkout must remain disabled.
+The current Shop catalog uses BDT minor-unit price fields while EIX is a Neweix-only purchase utility token, not money. The approved nominal mapping is 1 BDT = 1 EIX, but Shop must not calculate or authoritatively convert the amount itself. Eixon must return the quote bound to the order snapshot. This decision alone does not enable checkout; all remaining blockers and release gates still apply.
 
 ## Failure semantics
 
