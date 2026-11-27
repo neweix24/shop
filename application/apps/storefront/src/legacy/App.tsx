@@ -44,7 +44,7 @@ import {
 } from "@/lib/store";
 import NotFound from "@/pages/NotFound";
 import TrackOrderPage from "@/pages/TrackOrderPage";
-import { createGuestCodOrder, fetchCatalog, fetchShopStatus } from "@/lib/shopApi";
+import { createEixonCheckout, fetchCatalog, fetchShopStatus } from "@/lib/shopApi";
 import {
   Heart,
   Menu,
@@ -1073,7 +1073,7 @@ function CartPage({ onNotify }: { onNotify: (message: string) => void }) {
   );
 }
 
-function CheckoutPage({ onNotify, guestCheckoutEnabled }: { onNotify: (message: string) => void; guestCheckoutEnabled: boolean }) {
+function CheckoutPage({ onNotify, checkoutEnabled }: { onNotify: (message: string) => void; checkoutEnabled: boolean }) {
   const { cart } = useStoreState();
   const [address, setAddress] = useState<DeliveryAddress>({
     name: "",
@@ -1085,7 +1085,7 @@ function CheckoutPage({ onNotify, guestCheckoutEnabled }: { onNotify: (message: 
     line1: "",
     note: "",
   });
-  const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [paymentMethod, setPaymentMethod] = useState("eixon_wallet");
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -1122,14 +1122,8 @@ function CheckoutPage({ onNotify, guestCheckoutEnabled }: { onNotify: (message: 
       );
       return;
     }
-    if (paymentMethod !== "cod") {
-      const unavailable: Record<string, string> = {
-        eixon_wallet: "Eixon Wallet requires Neweix Account authentication and an active, approved Eixon Shop payment contract.",
-        bkash: "bKash checkout is disabled until gateway credentials, webhook verification and legal approval are complete.",
-        nagad: "Nagad checkout is disabled until gateway credentials, webhook verification and legal approval are complete.",
-        card: "Card checkout is disabled until a compliant card gateway and legal approval are complete.",
-      };
-      setError(unavailable[paymentMethod] ?? "This payment method is not available.");
+    if (paymentMethod !== "eixon_wallet") {
+      setError("Neweix Shop accepts Eixon only.");
       return;
     }
     const validItems = cart.flatMap(item => {
@@ -1145,7 +1139,7 @@ function CheckoutPage({ onNotify, guestCheckoutEnabled }: { onNotify: (message: 
     }
     setSubmitting(true);
     try {
-      const result = await createGuestCodOrder({
+      const result = await createEixonCheckout({
         guestName: address.name,
         phone: address.phone,
         address: {
@@ -1159,9 +1153,16 @@ function CheckoutPage({ onNotify, guestCheckoutEnabled }: { onNotify: (message: 
         note: address.note,
         idempotencyKey,
       });
+      if (result.checkoutUrl) {
+        window.location.assign(result.checkoutUrl);
+        return;
+      }
+      if (!result.order?.id || !result.order.order_number) {
+        throw new Error("Eixon did not return a verified checkout session or order reference.");
+      }
       setSubmitted(true);
       setCart([]);
-      onNotify(`Order ${result.order.order_number} received for manual review.`);
+      onNotify(`Order ${result.order.order_number} created. Payment status will be verified by Eixon.`);
       setLocation(`/track?orderId=${encodeURIComponent(result.order.id)}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Your order could not be submitted. Please try again.");
@@ -1183,7 +1184,7 @@ function CheckoutPage({ onNotify, guestCheckoutEnabled }: { onNotify: (message: 
         />
       </PageFrame>
     );
-  if (!guestCheckoutEnabled)
+  if (!checkoutEnabled)
     return (
       <PageFrame
         eyebrow="Checkout"
@@ -1291,11 +1292,7 @@ function CheckoutPage({ onNotify, guestCheckoutEnabled }: { onNotify: (message: 
             </div>
             <div className="payment-options">
               {[
-                { id: "eixon_wallet", title: "Eixon Wallet", note: "Requires Neweix Account and an active Eixon payment contract.", enabled: false },
-                { id: "cod", title: "Cash on Delivery", note: "Guest checkout is supported. New orders enter manual delivery review.", enabled: true },
-                { id: "bkash", title: "bKash", note: "Pending gateway credentials, webhook verification and legal approval.", enabled: false },
-                { id: "nagad", title: "Nagad", note: "Pending gateway credentials, webhook verification and legal approval.", enabled: false },
-                { id: "card", title: "Debit / Credit Card", note: "Pending compliant card gateway and legal approval.", enabled: false },
+                { id: "eixon_wallet", title: "Eixon Wallet", note: "Eixon-only payment. Checkout remains unavailable until Account authorization and the approved Eixon payment contract are live.", enabled: checkoutEnabled },
               ].map(method => (
                 <label
                   className={`payment-option ${paymentMethod === method.id ? "active" : ""}`}
@@ -1372,11 +1369,11 @@ function CheckoutPage({ onNotify, guestCheckoutEnabled }: { onNotify: (message: 
             disabled={submitted || submitting}
             type="submit"
           >
-            {submitting ? "Submitting order…" : submitted ? "Order submitted" : "Place COD order"}{" "}
+            {submitting ? "Opening Eixon checkout…" : submitted ? "Order submitted" : "Continue with Eixon"}{" "}
             <ArrowRight size={16} />
           </button>
           <p className="summary-note">
-            Guest checkout remains paused until Admin order review and reserved-stock release are verified. Delivery fees and the final payable amount are never assumed.
+            Checkout remains paused until Account authorization, Supreme-approved Admin controls, Eixon payment verification, inventory release and delivery fulfilment are live. Delivery fees and the final payable amount are never assumed.
           </p>
         </aside>
       </form>
@@ -2035,7 +2032,7 @@ function Storefront() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [catalogNotice, setCatalogNotice] = useState<string | null>(null);
-  const [guestCheckoutEnabled, setGuestCheckoutEnabled] = useState(false);
+  const [checkoutEnabled, setGuestCheckoutEnabled] = useState(false);
   const [, setCatalogRevision] = useState(0);
   const { cart, wishlist } = useStoreState();
   const auth = useAuth();
@@ -2122,7 +2119,7 @@ function Storefront() {
         <Route path="/cart" component={() => <CartPage onNotify={notify} />} />
         <Route
           path="/checkout"
-          component={() => <CheckoutPage onNotify={notify} guestCheckoutEnabled={guestCheckoutEnabled} />}
+          component={() => <CheckoutPage onNotify={notify} checkoutEnabled={checkoutEnabled} />}
         />
         <Route path="/signin" component={() => <AuthPage mode="signin" />} />
         <Route path="/signup" component={() => <AuthPage mode="signup" />} />
