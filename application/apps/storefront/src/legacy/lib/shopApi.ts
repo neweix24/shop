@@ -89,14 +89,12 @@ type ApiCatalogProduct = {
 };
 
 export type EixonCheckoutResult = {
-  id: string;
-  order_number: number | string;
-  status: string;
-  payment_status: string;
-  subtotal_minor: number;
-  delivery_fee_minor: number;
-  total_minor: number;
-  replayed: boolean;
+  success?: boolean;
+  checkoutUrl?: string;
+  order?: {
+    id: string;
+    order_number: number | string;
+  };
 };
 
 export async function fetchCatalog() {
