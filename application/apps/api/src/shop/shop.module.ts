@@ -15,7 +15,7 @@ import type { Request } from "express";
 import { createHash } from "node:crypto";
 import { SupabaseRestService } from "../database/supabase-rest.service";
 import { normalizeBangladeshPhone } from "../common/phone";
-import { getGuestCheckoutStatus } from "../common/feature-flags";
+import { getShopCheckoutStatus } from "../common/feature-flags";
 
 const ORDER_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -201,7 +201,7 @@ class CatalogController {
 class CheckoutController {
   @Get("status")
   status() {
-    return getGuestCheckoutStatus();
+    return getShopCheckoutStatus();
   }
 
   @Post("cod")
