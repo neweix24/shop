@@ -1,25 +1,24 @@
 /**
- * Guest COD is deliberately blocked by a source-level release gate.
- * Runtime environment configuration is not a payment-policy decision,
- * Supreme-approved Admin grant, or proof that order/inventory operations work.
+ * Shop follows the owner-approved Eixon-only payment policy.
+ * Checkout remains disabled until Eixon exposes a tested server-to-server
+ * intent, confirmation, refund and reconciliation contract.
  */
 export const SHOP_CHECKOUT_RELEASE_BLOCKERS = Object.freeze([
-  "authoritative_payment_policy",
+  "eixon_shop_payment_contract",
   "supreme_approved_admin_grant",
   "order_review_cancellation_and_audit",
   "reserved_inventory_release",
   "verified_delivery_fee_and_fulfilment",
 ] as const);
 
-const CHECKOUT_RELEASE_APPROVED_IN_CODE = false;
-
 export function isGuestCodCheckoutEnabled(): boolean {
-  return CHECKOUT_RELEASE_APPROVED_IN_CODE;
+  return false;
 }
 
 export function getGuestCheckoutStatus() {
   return {
-    guestCodCheckoutEnabled: isGuestCodCheckoutEnabled(),
+    checkoutEnabled: false,
+    paymentPolicy: "eixon_only" as const,
     status: "disabled" as const,
     blockers: [...SHOP_CHECKOUT_RELEASE_BLOCKERS],
   };
