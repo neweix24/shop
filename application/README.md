@@ -43,3 +43,10 @@ Preview deployment trigger reconfigured to rebuild this branch on every push whi
 - Shop follows an Eixon-only payment policy. COD and external gateways are not allowed. Checkout is blocked by a source-level release gate; setting `SHOP_GUEST_CHECKOUT_ENABLED=true` cannot enable it. The Eixon Shop payment contract, Supreme-approved Admin grant, audited order lifecycle, inventory reservation release, and verified delivery fee/fulfilment remain unresolved.
 
 Production status is tracked in [PRODUCTION-READINESS.md](./PRODUCTION-READINESS.md). The storefront is deployed to the existing Production Worker and `shop-api` Edge Function is active with checkout disabled. The NestJS API runtime, Account SSO, Supreme Admin grant, Eixon payment contract, delivery verification, real catalog data, and production schema policy reconciliation remain release blockers. Do not enable checkout or mark the release ready until every acceptance criterion in that document is verified.
+
+
+## Supreme governance and Admin operations
+
+Supreme is the highest and final authority. Admin conducts day-to-day Shop operations within the Supreme-approved Admin grant. Shop must validate that grant server-side for product publishing and privileged order operations. The canonical rules are in the [Supreme Ecosystem Governance Charter](https://github.com/neweix24/supreme/blob/main/docs/ecosystem-governance-charter.md) and the repository-level [ECOSYSTEM_ALIGNMENT.md](../ECOSYSTEM_ALIGNMENT.md).
+
+Shop owns commerce data. Account owns customer identity. Eixon owns EIX and the ledger. Do not write directly to another service's private database.
