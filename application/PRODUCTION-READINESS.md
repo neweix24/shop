@@ -9,7 +9,7 @@ Last verified: 2026-11-27 (UTC)
 - Worker Static Assets serve the storefront. Requests under `/api` intentionally return HTTP 503 until the NestJS API runtime is deployed and verified.
 - Supabase project: `Neweix` (`grhybvlhdnzlopwbaqun`), region `ap-southeast-1`, status `ACTIVE_HEALTHY`.
 - Supabase Edge Function `shop-api` is ACTIVE at version **6**. The live source now returns HTTP 410 for `POST /checkout/cod` and HTTP 503 for `POST /checkout`. The old COD order-creation call has been removed from the deployed function.
-- GitHub remediation branch: `feat/shop-ecosystem-remediation`. PR #2 remains Draft and unmerged.
+- GitHub remediation branch: `feat/shop-ecosystem-remediation`. PR [#2](https://github.com/neweix24/shop/pull/2) was squash-merged into `neweix24-patch-1` on 2026-11-27 (merge commit `e3356abd0dcd6113c2a90c1f60fe81807a677f13`). It was **not** merged into `main`.
 
 ## Live database observations
 
@@ -39,7 +39,7 @@ Last verified: 2026-11-27 (UTC)
 6. **Delivery:** verified delivery fee/coverage and booking/tracking credentials are required before shipping can be quoted or booked. No provider credentials are assumed.
 7. **Catalog:** real approved product descriptions, images, SKU/variant prices, and stock counts must be entered by an authorized Admin. No sample products or invented stock may be published.
 8. **Admin authority:** the Supreme-approved Admin Grant Contract is currently design-only. No Admin principal or production grant is issued yet.
-9. **Source branch:** PR #2 still targets `neweix24-patch-1` rather than `main`. The branch relationship requires an explicit reconciliation and review before merge.
+9. **Main-branch reconciliation:** the Shop implementation is merged into `neweix24-patch-1`, not `main`. These branches are currently diverged (`neweix24-patch-1` is 99 commits ahead and 4 behind `main` when compared). Review the branch history and isolate the intended Shop changes before any integration into `main`; do not merge the full branch blindly.
 
 ## Security and operational notes
 
@@ -61,4 +61,4 @@ A release can be considered complete only after:
 - security findings are reviewed and documented;
 - production domain, API, checkout-disabled/enabled state, monitoring, and rollback are independently verified.
 
-**Current decision:** Storefront deployed; API and checkout remain disabled. The database payment policy is now Eixon-only, but the payment contract and remaining release gates are not complete.
+**Current decision:** Storefront deployed; the Shop implementation PR is merged into the imported baseline branch `neweix24-patch-1`. API and checkout remain disabled. The database payment policy is Eixon-only, but the payment contract and remaining release gates are not complete. No production release is approved.
