@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { isGuestCodCheckoutEnabled, readBoundedJson } from "./_shared/request.ts";
+import { readBoundedJson } from "./_shared/request.ts";
 
 const allowedOrigin = Deno.env.get("SHOP_ALLOWED_ORIGIN") ?? "https://www.shop.neweix.com";
 const corsHeaders = {
@@ -57,7 +57,6 @@ Deno.serve(async (request: Request) => {
   const path = url.pathname.startsWith("/shop-api") ? (url.pathname.slice(9) || "/") : url.pathname;
 
   if (request.method === "GET" && path === "/health") {
-    const guestCodCheckoutEnabled = isGuestCodCheckoutEnabled();
     return json({
       service: "shop-api",
       status: "ok",
@@ -170,79 +169,18 @@ Deno.serve(async (request: Request) => {
     }
   }
 
+  if (request.method === "POST" && path === "/checkout/cod") {
+    return json({
+      error: "Cash on Delivery is prohibited by the current Neweix Shop payment policy.",
+      code: "SHOP_COD_PROHIBITED",
+    }, 410);
+  }
+
   if (request.method === "POST" && path === "/checkout") {
-    if (!isGuestCodCheckoutEnabled()) {
-      return json({
-        error: "Shop checkout is disabled. Eixon is the only approved payment route, and its server-to-server payment contract is not yet implemented and verified.",
-        code: "SHOP_CHECKOUT_DISABLED",
-      }, 503);
-    }
-    const body = await readBoundedJson(request);
-    if (!body) return json({ error: "Invalid request body." }, 400);
-    const method = body.paymentMethod;
-    if (method !== "cod") {
-      const code = method === "eixon_wallet" ? "EIXON_INTEGRATION_UNAVAILABLE" : "PAYMENT_PROVIDER_NOT_APPROVED";
-      return json({ error: "Only Eixon payment is permitted by Shop policy. No payment method is currently active.", code }, 503);
-    }
-    const guestName = typeof body.guestName === "string" ? body.guestName.trim() : "";
-    const guestPhone = normalizeBangladeshPhone(body.phone);
-    const address = body.address && typeof body.address === "object" && !Array.isArray(body.address)
-      ? body.address as Record<string, unknown> : null;
-    const rawItems = Array.isArray(body.items) ? body.items : [];
-    const idempotencyKey = typeof body.idempotencyKey === "string" ? body.idempotencyKey : "";
-    const customerNote = typeof body.note === "string" ? body.note : null;
-    if (guestName.length < 2 || guestName.length > 120 || !guestPhone || !address ||
-        rawItems.length < 1 || rawItems.length > 20 ||
-        !/^[A-Za-z0-9:_-]{8,100}$/.test(idempotencyKey)) {
-      return json({ error: "Name, valid Bangladesh phone, delivery address, cart items and idempotency key are required." }, 400);
-    }
-    const division = typeof address.division === "string" ? address.division.trim() : "";
-    const district = typeof address.district === "string" ? address.district.trim() : "";
-    const upazila = typeof address.upazila === "string" ? address.upazila.trim() : "";
-    const addressLine = typeof address.addressLine === "string" ? address.addressLine.trim() : "";
-    if (!division || !district || !upazila || addressLine.length < 4) {
-      return json({ error: "Complete the delivery division, district, upazila and address." }, 400);
-    }
-    const items = rawItems.map((item) => {
-      const row = item && typeof item === "object" ? item as Record<string, unknown> : {};
-      return { variant_id: row.variantId, quantity: row.quantity };
-    });
-    if (items.some(item => typeof item.variant_id !== "string" ||
-        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(item.variant_id) ||
-        !Number.isInteger(item.quantity) || (item.quantity as number) < 1 || (item.quantity as number) > 100)) {
-      return json({ error: "Cart contains an invalid product variant or quantity." }, 400);
-    }
-    try {
-      if (!await consumeRateLimit(request, "checkout", 8)) return json({ error: "Too many checkout attempts. Try again later." }, 429);
-      const client = serviceClient();
-      const { data, error } = await client.rpc("shop_create_guest_cod_order", {
-        p_guest_name: guestName,
-        p_guest_phone: guestPhone,
-        p_delivery_address: {
-          recipient_name: guestName,
-          phone: guestPhone,
-          division,
-          district,
-          upazila,
-          union_or_area: typeof address.unionOrArea === "string" ? address.unionOrArea.trim() : null,
-          address_line: addressLine,
-          postal_code: typeof address.postalCode === "string" ? address.postalCode.trim() : null,
-        },
-        p_items: items,
-        p_idempotency_key: idempotencyKey,
-        p_customer_note: customerNote,
-      });
-      if (error) {
-        if (error.code === "22023") return json({ error: "Check the order details and try again." }, 400);
-        if (error.code === "P0002") return json({ error: "A product is unavailable." }, 409);
-        if (error.code === "P0001") return json({ error: "There is not enough stock for one or more items." }, 409);
-        if (error.code === "23505") return json({ error: "This checkout request conflicts with an earlier request." }, 409);
-        return json({ error: "Order could not be created. Please try again later." }, 503);
-      }
-      return json({ success: true, order: data, tracking: "Use the Order ID and checkout phone number to track this guest order." }, 201);
-    } catch {
-      return json({ error: "Checkout is temporarily unavailable." }, 503);
-    }
+    return json({
+      error: "Shop checkout is disabled until the Supreme-approved Eixon payment contract, Account integration, Admin grant, and operational release gates are verified.",
+      code: "SHOP_CHECKOUT_DISABLED",
+    }, 503);
   }
 
   return json({ error: "Not found." }, 404);
