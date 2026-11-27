@@ -1188,7 +1188,7 @@ function CheckoutPage({ onNotify, guestCheckoutEnabled }: { onNotify: (message: 
       <PageFrame
         eyebrow="Checkout"
         title="Checkout is temporarily paused"
-        intro="Guest COD orders will be accepted only after Shop order review, cancellation, and reserved-stock release operations are implemented and verified. Your cart remains saved."
+        intro="Neweix Shop accepts Eixon only. Checkout will remain paused until the approved Eixon payment contract, order controls, inventory release, and verified delivery fulfilment are live. Your cart remains saved."
       >
         <EmptyState
           title="Order operations are not ready"
@@ -1661,21 +1661,14 @@ function AccountPage({
             <span className="eyebrow">Wallet methods</span>
             <h2>Payment methods, not membership.</h2>
             <p className="panel-copy">
-              Connect Eixon only through a verified server-side
-              provider. Neweix+ membership is separate.
+              Neweix Shop uses Eixon only for payments. The Shop does not hold
+              an Eixon balance or maintain a separate financial ledger.
+              Neweix+ membership remains a separate service.
             </p>
             <div className="wallet-methods">
               <div>
-                <strong>MFS</strong>
-                <span>Not connected</span>
-              </div>
-              <div>
-                <strong>Card</strong>
-                <span>Not connected</span>
-              </div>
-              <div>
                 <strong>Eixon</strong>
-                <span>Separate financial system</span>
+                <span>Payment integration pending approval</span>
               </div>
             </div>
           </>
