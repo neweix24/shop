@@ -2032,7 +2032,7 @@ function Storefront() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [catalogNotice, setCatalogNotice] = useState<string | null>(null);
-  const [checkoutEnabled, setGuestCheckoutEnabled] = useState(false);
+  const [checkoutEnabled, setCheckoutEnabled] = useState(false);
   const [, setCatalogRevision] = useState(0);
   const { cart, wishlist } = useStoreState();
   const auth = useAuth();
@@ -2042,10 +2042,10 @@ function Storefront() {
     let active = true;
     fetchShopStatus()
       .then(enabled => {
-        if (active) setGuestCheckoutEnabled(enabled);
+        if (active) setCheckoutEnabled(enabled);
       })
       .catch(() => {
-        if (active) setGuestCheckoutEnabled(false);
+        if (active) setCheckoutEnabled(false);
       });
     fetchCatalog()
       .then(remoteProducts => {
