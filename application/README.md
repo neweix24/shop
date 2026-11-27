@@ -3,13 +3,13 @@
 This is the new production-target application. The ZIP-derived Vite client remains preserved under `apps/storefront/src/legacy` and `../source-import`; it is source material, not a production server.
 
 - `apps/storefront`: Next.js 15 static-export storefront mounting the ZIP-derived UI.
-- `apps/api`: NestJS 12 modular monolith API for Shop-owned catalogue, COD checkout, guest order tracking, health/readiness and fail-closed integration boundaries.
+- `apps/api`: NestJS 12 modular monolith API for Shop-owned catalogue, guest order tracking, health/readiness and fail-closed integration boundaries.
 
 ## Ownership boundaries
 
 Account owns customer identity. Eixon owns EIX and the financial ledger. Supreme owns governance and reserved approvals. Shop owns catalogue, inventory, carts, orders, delivery, returns and support. The Shop API must never write to another service's private database.
 
-No local/Manus identity is accepted as customer authentication. Product publishing remains disabled until the Supreme-approved Admin grant is implemented and verified. Eixon payment remains disabled until the approved server-to-server contract exists. Pathao remains disabled until verified credentials and coverage exist.
+No local/Manus identity is accepted as customer authentication. Product publishing remains disabled until the Supreme-approved Admin grant is implemented and verified. Eixon is the only approved Shop payment route. Checkout remains disabled until its server-to-server intent, confirmation, refund and reconciliation contract is implemented and verified. COD and external gateways are not allowed. Pathao remains disabled until verified credentials and coverage exist.
 
 ## Environment
 
@@ -48,6 +48,6 @@ Preview deployment trigger reconfigured to rebuild this branch on every push whi
 - API responses receive baseline browser security headers and no-store caching. CORS uses exact configured HTTPS origins; HTTP localhost is permitted only outside production.
 - The server-side Supabase adapter accepts HTTPS `.supabase.co` project hosts in production (localhost HTTP is development-only), rejects URL credentials/query/hash/path overrides and redirects, and applies an eight-second upstream timeout.
 - Catalog reads are bounded to 100 rows. Unsafe/negative prices are excluded; malformed or missing inventory is shown as zero stock.
-- Guest COD is blocked by a source-level release gate. Setting `SHOP_GUEST_CHECKOUT_ENABLED=true` cannot enable it. The payment-policy decision, Supreme-approved Admin grant, audited order lifecycle, inventory reservation release, and verified delivery fee/fulfilment remain unresolved.
+- Shop follows an Eixon-only payment policy. COD and external gateways are not allowed. Checkout is blocked by a source-level release gate; setting `SHOP_GUEST_CHECKOUT_ENABLED=true` cannot enable it. The Eixon Shop payment contract, Supreme-approved Admin grant, audited order lifecycle, inventory reservation release, and verified delivery fee/fulfilment remain unresolved.
 
 These are source changes only. No live API, Supabase database, Production Worker, domain, or Supreme registry has been changed.
