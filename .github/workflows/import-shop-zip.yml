@@ -3,7 +3,9 @@ name: Import Shop ZIP source
 on:
   workflow_dispatch:
   push:
-    branches: [neweix24-patch-1]
+    branches:
+      - neweix24-patch-1
+      - feat/shop-ecosystem-remediation
     paths:
       - code.zip
 
@@ -11,7 +13,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: shop-zip-import
+  group: shop-zip-import-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -19,55 +21,138 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - name: Checkout source branch
+      - name: Checkout selected source branch
         uses: actions/checkout@v4
         with:
-          ref: neweix24-patch-1
+          ref: ${{ github.ref }}
           fetch-depth: 0
 
-      - name: Validate and extract archive
+      - name: Validate archive and stage non-destructive import
         shell: bash
         run: |
           set -euo pipefail
           test -s code.zip
-          unzip -tq code.zip
-          rm -rf /tmp/shop-archive source-import
-          mkdir -p /tmp/shop-archive source-import
-          unzip -q code.zip -d /tmp/shop-archive
+          python3 - <<'PY'
+          from __future__ import annotations
 
-          # Find the project root even when the ZIP contains one wrapper directory.
-          if [ -f /tmp/shop-archive/package.json ]; then
-            ROOT=/tmp/shop-archive
-          else
-            mapfile -t manifests < <(find /tmp/shop-archive -mindepth 2 -maxdepth 4 -type f -name package.json -not -path '*/node_modules/*' | sort)
-            if [ "${#manifests[@]}" -ne 1 ]; then
-              echo "Expected exactly one project package.json; found ${#manifests[@]}."
-              printf '%s\n' "${manifests[@]}"
-              exit 1
-            fi
-            ROOT="$(dirname "${manifests[0]}")"
-          fi
+          import hashlib
+          import shutil
+          import stat
+          import tempfile
+          import zipfile
+          from pathlib import Path, PurePosixPath
 
-          # Never import credentials, nested archives, generated output, or VCS metadata.
-          rsync -a --delete \
-            --exclude='/.git/' \
-            --exclude='/node_modules/' \
-            --exclude='/dist/' \
-            --exclude='/build/' \
-            --exclude='/.manus-logs/' \
-            --include='/.env.example' \
-            --exclude='/.env' \
-            --exclude='/.env.*' \
-            --exclude='*.zip' \
-            --exclude='*.tar.gz' \
-            --exclude='*.bak' \
-            --exclude='debug-collector.js' \
-            "${ROOT}/" source-import/
-          test -s source-import/package.json
-          echo "Imported project root: ${ROOT}"
-          find source-import -maxdepth 2 -type f | sort | head -200
+          archive = Path("code.zip")
+          destination = Path("source-import")
+          temporary = Path(tempfile.mkdtemp(prefix="shop-zip-"))
+          excluded_parts = {".git", ".hg", ".svn", "node_modules", "dist", "build", ".next", ".manus-logs"}
+          staged: list[tuple[Path, Path]] = []
 
-      - name: Commit extracted source
+          def digest(path: Path) -> str:
+              value = hashlib.sha256()
+              with path.open("rb") as stream:
+                  for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                      value.update(chunk)
+              return value.hexdigest()
+
+          def skip_entry(path: PurePosixPath) -> bool:
+              if any(part in excluded_parts for part in path.parts):
+                  return True
+              name = path.name.lower()
+              if name == ".env" or (name.startswith(".env.") and name != ".env.example"):
+                  return True
+              if name.endswith((".zip", ".tar.gz", ".bak")):
+                  return True
+              if name == "debug-collector.js":
+                  return True
+              return False
+
+          try:
+              with zipfile.ZipFile(archive) as bundle:
+                  bad_member = bundle.testzip()
+                  if bad_member:
+                      raise SystemExit(f"ZIP CRC validation failed for: {bad_member}")
+
+                  files: list[tuple[zipfile.ZipInfo, PurePosixPath]] = []
+                  for info in bundle.infolist():
+                      raw_name = info.filename
+                      if "\\" in raw_name or "\x00" in raw_name:
+                          raise SystemExit(f"Unsafe ZIP path: {raw_name!r}")
+                      relative = PurePosixPath(raw_name)
+                      if relative.is_absolute() or any(part in ("", ".", "..") for part in relative.parts):
+                          raise SystemExit(f"Unsafe ZIP path: {raw_name!r}")
+                      if relative.parts and relative.parts[0].endswith(":"):
+                          raise SystemExit(f"Drive-qualified ZIP path is not allowed: {raw_name!r}")
+
+                      mode = (info.external_attr >> 16) & 0o170000
+                      if mode == stat.S_IFLNK:
+                          raise SystemExit(f"Symbolic links are not allowed in the ZIP: {raw_name!r}")
+                      if mode not in (0, stat.S_IFREG, stat.S_IFDIR):
+                          raise SystemExit(f"Special file is not allowed in the ZIP: {raw_name!r}")
+                      if info.is_dir() or skip_entry(relative):
+                          continue
+                      files.append((info, relative))
+
+                  if not files:
+                      raise SystemExit("The ZIP contains no importable project files.")
+
+                  for info, relative in files:
+                      target = temporary.joinpath(*relative.parts)
+                      target.parent.mkdir(parents=True, exist_ok=True)
+                      with bundle.open(info, "r") as source, target.open("wb") as output:
+                          shutil.copyfileobj(source, output)
+
+              manifests = sorted(temporary.rglob("package.json"))
+              root_manifest = temporary / "package.json"
+              if root_manifest.is_file():
+                  project_root = temporary
+              else:
+                  candidates = [path for path in manifests if 2 <= len(path.relative_to(temporary).parts) <= 4]
+                  if len(candidates) != 1:
+                      listing = "\\n".join(str(path.relative_to(temporary)) for path in candidates)
+                      raise SystemExit(
+                          f"Expected exactly one project package.json at depth 2-4; found {len(candidates)}.\\n{listing}"
+                      )
+                  project_root = candidates[0].parent
+
+              destination.mkdir(parents=True, exist_ok=True)
+              conflicts: list[str] = []
+              for source in sorted(project_root.rglob("*")):
+                  if not source.is_file():
+                      continue
+                  relative = source.relative_to(project_root)
+                  if skip_entry(PurePosixPath(relative.as_posix())):
+                      continue
+                  target = destination / relative
+                  if target.is_symlink():
+                      conflicts.append(f"{relative} (destination is a symlink)")
+                  elif target.exists() and digest(source) != digest(target):
+                      conflicts.append(f"{relative} (different existing content)")
+                  elif not target.exists():
+                      staged.append((source, target))
+
+              if conflicts:
+                  print("Import stopped. Existing files were not overwritten:")
+                  print("\\n".join(f"- {item}" for item in conflicts))
+                  raise SystemExit(1)
+
+              for source, target in staged:
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  temporary_target = target.with_name(target.name + ".shop-import-tmp")
+                  shutil.copy2(source, temporary_target)
+                  temporary_target.replace(target)
+
+              if not (destination / "package.json").is_file():
+                  raise SystemExit("The imported project root did not produce source-import/package.json.")
+
+              print(f"Project root: {project_root.relative_to(temporary) or '.'}")
+              print(f"New files added: {len(staged)}")
+              print("Existing source files were preserved. The uploaded code.zip was not deleted.")
+          finally:
+              shutil.rmtree(temporary, ignore_errors=True)
+          PY
+
+      - name: Commit newly added source files
         shell: bash
         run: |
           set -euo pipefail
@@ -75,10 +160,10 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add source-import
           if ! git diff --cached --quiet; then
-            git commit -m 'Import storefront source from uploaded ZIP'
-            git push origin HEAD:neweix24-patch-1
+            git commit -m 'Import non-conflicting storefront source files'
+            git push origin "HEAD:${GITHUB_REF_NAME}"
           else
-            echo 'No source changes to import.'
+            echo 'No new source files to import.'
           fi
 
       - name: Install dependencies with the committed lockfile
@@ -87,7 +172,6 @@ jobs:
         run: |
           set -euo pipefail
           corepack enable
-          pnpm --version
           test -s pnpm-lock.yaml
           pnpm install --frozen-lockfile
 
@@ -96,9 +180,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node --version
-          pnpm --version
-          for task in typecheck check lint test build; do
+          for task in check lint test build; do
             if node -e "process.exit(require('./package.json').scripts?.['$task'] ? 0 : 1)"; then
               pnpm run "$task"
             else

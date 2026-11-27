@@ -1,31 +1,42 @@
-# NEWEIX delivery TODO
+# Neweix Shop — implementation status and remaining work
 
-## Storefront and navigation
+This checklist describes verified code and live integration state. A UI route is not treated as a completed business workflow unless it is connected to an authoritative service and tested end to end.
 
-- [ ] Deliver homepage, product listing/category and search results, product detail, cart, checkout, authentication, customer account, order list/detail/tracking, wishlist, FAQ, contact, privacy/consent, and system/error/loading/empty states.
-- [ ] Keep English as the default UI language, structure labels and data for future Bengali support, keep homepage search visible as designed, omit an account menu from the right side of the homepage, provide mobile bottom navigation, and provide a hamburger feature menu.
-- [ ] Keep personal profile settings in the account page without a sidebar; keep hamburger links for My Orders, Order Track, Wishlist, Shopping Cart, Language, Wallet, Neweix+, eixverse, FAQ, and Contact; keep Neweix+ separate from financial/payment features.
+## ZIP-derived storefront currently present
+- [x] Responsive homepage, catalog/category browsing, search, product details, cart, wishlist, FAQ, contact, privacy, and tracking UI.
+- [x] Cart and wishlist browser persistence.
+- [x] API-backed catalog rendering with an honest empty state; no demo products, prices, SKUs, or inventory are fabricated.
+- [x] BDT price formatting and server-returned variant/stock display.
+- [x] Guest COD order form UI and API integration seam; order submission is now fail-closed by default pending verified Shop operations.
+- [x] Guest order tracking requires both Order ID and the checkout phone number.
+- [x] Preview API isolation: Cloudflare Pages builds preview mode and does not fall back to production data.
+- [x] Request-size, JSON-shape, and checkout feature-flag tests are part of Deno validation.
 
-## Catalog and customer actions
+## Shop-owned commerce foundation
+- [x] Shop-owned catalog, variants, inventory, guest/customer addresses, orders, order items, payment attempts, delivery jobs, order events, returns, carts, and rate-limit schema exists in migrations.
+- [x] Guest COD RPC calculates prices from database state, checks stock under row locks, reserves stock atomically, and is idempotent.
+- [x] Public product endpoint returns active catalog records and server-calculated available stock.
+- [x] Account order-read endpoint fails closed until the first-party Neweix Account SSO contract is registered and verified.
+- [ ] Build complete order operations: accept/reject/cancel, refund/reversal, reservation expiry/release, fulfilment status, and audited manual review.
+- [ ] Add durable server-side customer cart and verified account-address workflows; current browser cart is local storage.
+- [ ] Add reviews, customer support/order notes, reporting, and full returns/refunds workflows with service-side authorization.
+- [ ] Apply the reviewed owner-read RLS init-plan migration only after reconciling the live Supabase migration baseline.
 
-- [ ] Product cards support Add to Cart and Buy Now; Buy Now adds the item and uses the same cart-to-checkout flow; cart persistence survives reloads.
-- [ ] Product reviews are viewable without login; review submission can require authentication. Variant stock, quantities, prices, discounts, product imagery, related products, BDT formatting, and visible discount percentages are implemented.
-- [ ] Wishlist hearts visibly change state and color; card actions remain balanced and usable on mobile and desktop.
+## Ecosystem integration and production architecture
+- [ ] Port the useful ZIP UI into the approved Next.js frontend and NestJS modular-monolith backend. The current ZIP app remains Vite/React + Express/tRPC starter code and is preview-only.
+- [ ] Register Shop as the canonical commerce service through Supreme's protected control plane after fresh AAL2/device-bound ruler authorization. Track the decision in Supreme issue #73.
+- [ ] Implement and test Neweix Account first-party SSO, exact service audience, account-status checks, and customer ownership validation.
+- [ ] Define and test the Supreme-approved Shop Admin identity/grant contract before enabling product publishing or order operations.
+- [ ] Integrate Eixon only through an approved server-to-server payment intent/confirmation/refund/reconciliation contract. No EIX ledger or balance is stored in Shop.
+- [ ] Verify Pathao credentials, coverage, quotes, booking, tracking, cancellation, and returns. Until then, show no fabricated delivery quote or nationwide-delivery promise.
+- [ ] Connect Connect notifications through an approved contract; do not store Connect's message data in Shop.
+- [ ] Replace remote editorial placeholder imagery with approved, licensed, durable Shop-managed assets.
+- [ ] Add backup/restore drills, monitoring, rate-limit cleanup, audit review, security testing, and production smoke tests.
 
-## Bangladesh checkout and integrations
-
-- [ ] Checkout models Bangladesh division → district → upazila → union selection with an extensible geographic data adapter and a safe unsupported-area/manual fallback.
-- [ ] Delivery origin is configurable and may be Mymensingh, Dhaka, or another dispatch city; Pathao live pricing is only used through configured API/verified rules and never fabricated.
-- [ ] Checkout supports Cash on Delivery, bKash, Nagad, and Rocket. Payment success is never claimed until verified by a provider; secrets remain server-side.
-
-## Authentication, security, and account boundaries
-
-- [ ] Preserve Supabase-compatible/server-side session integration seams, the existing Manus OAuth foundation, callback/session persistence, protected routes, logout, secure cookie behavior, and browser-reopen/back-navigation resilience.
-- [ ] Never put service-role keys or secrets in client code. Server operations validate inputs and enforce authorization. Customer identity stays separate from staff identity.
-- [ ] Wallet is a feature-menu link; wallet methods in account cover MFS, Card, and Eixon where applicable; Eixon stays distinct from Neweix+.
-
-## Documentation and verification
-
-- [ ] Include README setup, environment variables, local development, database/schema/migrations/seed instructions, Supabase setup, OAuth callback configuration, payment-provider configuration, Pathao configuration, build/test/deploy guidance, owner actions, assumptions, and compatibility gaps.
-- [ ] Include focused tests for cart calculations, checkout validation, auth/session helpers, permissions, and pricing behavior where feasible.
-- [ ] Run and record typecheck, lint/format checks where available, tests, production build, `/api/health`, and `/manus-routes.json` checks. Package the full source ZIP without committing, pushing, merging, or deploying.
+## Current live blockers
+- Live catalog has zero active products, variants, and inventory rows.
+- Live Account SSO and Shop Admin grant/order-operation contracts are not verified.
+- Eixon Shop payment contract and Pathao delivery credentials/coverage are not verified.
+- The canonical Cloudflare Worker for `www.shop.neweix.com` still returns HTTP 503.
+- The separate `neweix-shop-preview` Pages project is preview-only; production deployments are disabled.
+- `SHOP_GUEST_CHECKOUT_ENABLED` must remain unset/false until Admin order operations and stock-release invariants are implemented and tested.

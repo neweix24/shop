@@ -2,17 +2,21 @@ name: Shop source validation
 
 on:
   push:
-    branches: [neweix24-patch-1]
+    branches:
+      - neweix24-patch-1
+      - feat/shop-ecosystem-remediation
     paths:
       - source-import/**
+      - docs/IMPLEMENTATION_BASELINE_AUDIT.md
       - .github/workflows/validate-shop.yml
+      - .github/workflows/import-shop-zip.yml
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: shop-source-validation
+  group: shop-source-validation-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -23,10 +27,10 @@ jobs:
       run:
         working-directory: source-import
     steps:
-      - name: Checkout source
+      - name: Checkout selected source branch
         uses: actions/checkout@v4
         with:
-          ref: neweix24-patch-1
+          ref: ${{ github.ref }}
       - name: Setup Node and pnpm
         uses: actions/setup-node@v4
         with:
@@ -46,10 +50,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Checkout source
+      - name: Checkout selected source branch
         uses: actions/checkout@v4
         with:
-          ref: neweix24-patch-1
+          ref: ${{ github.ref }}
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
@@ -57,3 +61,6 @@ jobs:
       - name: Type-check Shop Edge Function
         working-directory: source-import/supabase/functions/shop-api
         run: deno check index.ts
+      - name: Test Shop Edge Function request guards
+        working-directory: source-import/supabase/functions/shop-api
+        run: deno test _shared/request_test.ts
