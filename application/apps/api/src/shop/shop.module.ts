@@ -1,6 +1,4 @@
 import {
-  BadRequestException,
-  ConflictException,
   Controller,
   Get,
   Injectable,
@@ -8,7 +6,6 @@ import {
   NotFoundException,
   Post,
   Body,
-  Headers,
   Req,
   ServiceUnavailableException,
   HttpException,
@@ -16,9 +13,9 @@ import {
 } from "@nestjs/common";
 import type { Request } from "express";
 import { createHash } from "node:crypto";
-import { SupabaseRestError, SupabaseRestService } from "../database/supabase-rest.service";
+import { SupabaseRestService } from "../database/supabase-rest.service";
 import { normalizeBangladeshPhone } from "../common/phone";
-import { getGuestCheckoutStatus, isGuestCodCheckoutEnabled } from "../common/feature-flags";
+import { getGuestCheckoutStatus } from "../common/feature-flags";
 
 const ORDER_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -123,95 +120,6 @@ class CatalogService {
 }
 
 @Injectable()
-class CheckoutService {
-  constructor(private readonly db: SupabaseRestService, private readonly limits: ShopRateLimit) {}
-
-  async createGuestCodOrder(
-    input: {
-      guestName?: string;
-      phone?: string;
-      address?: {
-        division?: string; district?: string; upazila?: string;
-        unionOrArea?: string; addressLine?: string; postalCode?: string;
-      };
-      items?: Array<{ variantId?: string; quantity?: number }>;
-      note?: string;
-      paymentMethod?: string;
-    },
-    idempotencyKey: string | undefined,
-    clientIp: string,
-  ) {
-    const guestName = typeof input?.guestName === "string" ? input.guestName.trim() : "";
-    const phone = normalizeBangladeshPhone(input?.phone);
-    const address = input?.address;
-    const items = input?.items;
-
-    if (guestName.length < 2 || guestName.length > 120 || !phone) {
-      throw new BadRequestException("Enter a name and valid Bangladesh mobile number.");
-    }
-    if (!address || !["division", "district", "upazila", "addressLine"].every(
-      key => typeof (address as Record<string, unknown>)[key] === "string" &&
-        String((address as Record<string, unknown>)[key]).trim().length > 0
-    ) || address.addressLine!.trim().length < 4) {
-      throw new BadRequestException("Complete the delivery division, district, upazila and address.");
-    }
-    if (!Array.isArray(items) || items.length < 1 || items.length > 20) {
-      throw new BadRequestException("The cart must contain between 1 and 20 items.");
-    }
-    if (!idempotencyKey || !/^[A-Za-z0-9:_-]{8,100}$/.test(idempotencyKey)) {
-      throw new BadRequestException("A valid Idempotency-Key header is required.");
-    }
-    if (input.note && input.note.length > 500) throw new BadRequestException("The customer note is too long.");
-
-    const normalizedItems = items.map(item => ({
-      variant_id: item?.variantId,
-      quantity: item?.quantity,
-    }));
-    if (normalizedItems.some(item =>
-      typeof item.variant_id !== "string" ||
-      !ORDER_UUID.test(item.variant_id) ||
-      !Number.isInteger(item.quantity) ||
-      item.quantity! < 1 || item.quantity! > 100
-    )) {
-      throw new BadRequestException("The cart contains an invalid product variant or quantity.");
-    }
-    if (new Set(normalizedItems.map(item => item.variant_id)).size !== normalizedItems.length) {
-      throw new BadRequestException("The cart contains duplicate product variants.");
-    }
-
-    await this.limits.consume("checkout", clientIp, 8);
-    try {
-      const order = await this.db.rpc<Record<string, unknown>>("shop_create_guest_cod_order", {
-        p_guest_name: guestName,
-        p_guest_phone: phone,
-        p_delivery_address: {
-          recipient_name: guestName,
-          phone,
-          division: address.division!.trim(),
-          district: address.district!.trim(),
-          upazila: address.upazila!.trim(),
-          union_or_area: address.unionOrArea?.trim() || null,
-          address_line: address.addressLine!.trim(),
-          postal_code: address.postalCode?.trim() || null,
-        },
-        p_items: normalizedItems,
-        p_idempotency_key: idempotencyKey,
-        p_customer_note: input.note?.trim() || null,
-      });
-      return { success: true, order };
-    } catch (error) {
-      if (error instanceof SupabaseRestError) {
-        if (error.code === "22023") throw new BadRequestException("Check the order details and try again.");
-        if (["P0002", "P0001", "23505"].includes(error.code ?? "")) {
-          throw new ConflictException("The selected product or stock is unavailable, or this request conflicts with an earlier order.");
-        }
-      }
-      throw new ServiceUnavailableException("Checkout is temporarily unavailable.");
-    }
-  }
-}
-
-@Injectable()
 class TrackingService {
   constructor(private readonly db: SupabaseRestService, private readonly limits: ShopRateLimit) {}
 
@@ -291,36 +199,25 @@ class CatalogController {
 
 @Controller("checkout")
 class CheckoutController {
-  constructor(private readonly checkout: CheckoutService) {}
-
   @Get("status")
   status() {
     return getGuestCheckoutStatus();
   }
 
   @Post("cod")
-  create(
-    @Body() body: Parameters<CheckoutService["createGuestCodOrder"]>[0],
-    @Headers("idempotency-key") key: string | undefined,
-    @Req() request: Request,
-  ) {
-    // COD/Eixon-only policy is still awaiting one authoritative ruling.
-    // Keep checkout fail-closed unless the approved runtime config explicitly enables it.
-    if (!isGuestCodCheckoutEnabled()) {
-      throw new ServiceUnavailableException({
-        code: "SHOP_CHECKOUT_DISABLED",
-        message: "Checkout is disabled until the authoritative Shop payment policy is reconciled and approved.",
-      });
-    }
-    if (body?.paymentMethod !== undefined && body.paymentMethod !== "cod") {
-      throw new ServiceUnavailableException({
-        code: body.paymentMethod === "eixon_wallet" ? "EIXON_INTEGRATION_UNAVAILABLE" : "PAYMENT_METHOD_NOT_ENABLED",
-        message: "This payment method is not enabled for Shop.",
-      });
-    }
-    const header = request.headers["cf-connecting-ip"];
-    const ip = typeof header === "string" ? header : request.ip || request.socket.remoteAddress || "unknown";
-    return this.checkout.createGuestCodOrder(body, key, ip);
+  cod(): never {
+    throw new HttpException({
+      code: "SHOP_COD_PROHIBITED",
+      message: "Cash on Delivery is not an approved Neweix Shop payment method.",
+    }, 410);
+  }
+
+  @Post()
+  checkout(): never {
+    throw new ServiceUnavailableException({
+      code: "SHOP_CHECKOUT_DISABLED",
+      message: "Checkout is disabled until the Supreme-approved Eixon server-to-server payment contract and release gates are complete.",
+    });
   }
 }
 
@@ -389,7 +286,7 @@ class DeliveryController {
     AccountController, AdminController, PaymentsController, DeliveryController,
   ],
   providers: [
-    SupabaseRestService, ShopRateLimit, CatalogService, CheckoutService, TrackingService,
+    SupabaseRestService, ShopRateLimit, CatalogService, TrackingService,
   ],
 })
 export class ShopModule {}
