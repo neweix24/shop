@@ -62,7 +62,7 @@ Read-only privilege inspection found that the RLS-without-policy group is mixed:
 
 Therefore the advisor count must not be "fixed" by adding broad policies. First classify each table by intended access path, confirm schema exposure and grants, then add only narrowly scoped policies where direct client access is actually required. Server-only tables should remain server-only.
 
-The six SECURITY DEFINER functions have an empty search_path and explicitly bind user-scoped operations to `auth.uid()` and the active session. Their current behavior includes username change, listing/revoking the caller's sessions, password-change event recording, session validation, and a Supreme-ruler identity check. These are not to be blindly revoked: review each function's caller contract, ownership checks, and tests, then narrow grants if any caller is unnecessary.
+The six SECURITY DEFINER functions have an empty search_path. The inspected definitions use `auth.uid()` and, where relevant, the active session to scope user operations. Their current behavior includes username change, listing/revoking the caller's sessions, password-change event recording, session validation, and a Supreme-ruler identity check. These are not to be blindly revoked: review each function's caller contract, ownership checks, and tests, then narrow grants if any caller is unnecessary.
 
 Leaked-password protection is disabled. Enablement should be planned as an Auth security configuration change with a user-facing password-reset/registration impact review and tested before production rollout.
 
