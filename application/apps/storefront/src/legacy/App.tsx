@@ -97,9 +97,10 @@ function useStoreState() {
 
 function Logo() {
   return (
-    <Link href="/" className="brand-mark" aria-label="NEWEIX home">
-      <span className="brand-spark">✦</span>
-      <span>NEWEIX</span>
+    <Link href="/" className="brand-mark" aria-label="Neweix Shop home">
+      <span className="brand-word">Neweix<span className="brand-dot">.</span></span>
+      <span className="brand-divider" aria-hidden="true" />
+      <span className="brand-service">SHOP</span>
     </Link>
   );
 }
@@ -141,10 +142,10 @@ function SiteHeader({
   return (
     <>
       <div className="announcement">
-        <span>Delivery coverage and fees are confirmed by area</span>
-        <Link href="/faq">
-          How it works <ArrowUpRight size={12} />
-        </Link>
+        <span className="announcement-brand">NEWEIX ECOSYSTEM <i aria-hidden="true" /> OFFICIAL STORE</span>
+        <a href="https://www.neweix.com/services">
+          Explore all services <ArrowUpRight size={12} />
+        </a>
       </div>
       <header className="site-header">
         <button
@@ -217,33 +218,27 @@ function MobileNav({
   wishlistCount: number;
 }) {
   return (
-    <nav className="mobile-nav" aria-label="Mobile navigation">
+    <nav className="mobile-nav" aria-label="Shop navigation">
       <Link href="/">
-        <span className="mobile-nav-icon">⌂</span>
-        <span>Home</span>
+        <ShoppingBag size={19} />
+        <span>Shop</span>
       </Link>
       <Link href="/shop">
-        <SlidersHorizontal size={18} />
+        <SlidersHorizontal size={19} />
         <span>Browse</span>
       </Link>
-      <Link href="/wishlist" className="mobile-count-link">
-        <Heart size={18} />
-        <span>Saved</span>
-        {wishlistCount > 0 && <b>{wishlistCount}</b>}
-      </Link>
       <Link href="/cart" className="mobile-count-link">
-        <ShoppingBag size={18} />
+        <ShoppingBag size={19} />
         <span>Bag</span>
         {cartCount(cartItems) > 0 && <b>{cartCount(cartItems)}</b>}
       </Link>
       <Link href="/account">
-        <UserRound size={18} />
+        <UserRound size={19} />
         <span>Account</span>
       </Link>
     </nav>
   );
 }
-
 function MenuDrawer({
   open,
   onClose,
@@ -1858,7 +1853,7 @@ function ContentPage({
             ],
             [
               "What payment methods do you support?",
-              "Cash on Delivery is the intended guest checkout route, but order submissions remain paused until Shop order operations are ready. Eixon Wallet stays disabled until its Account and Eixon contracts are approved; no external gateway is active.",
+              "Neweix Shop uses Eixon only. Checkout remains paused until Neweix Account authorization, the approved Eixon payment contract, order controls and delivery fulfilment are ready.",
             ],
             [
               "Do you deliver outside Dhaka?",
@@ -1951,9 +1946,9 @@ function ContentPage({
           </div>
           <h2>Bring your preferred method.</h2>
           <p>
-            Eixon is the approved Neweix ecosystem payment route. The
-            appropriate verified provider is connected. Nothing here pretends to
-            be a financial balance.
+            Eixon is the only approved Shop payment route. Checkout stays
+            disabled until the central Account and Eixon payment contracts are
+            verified. No wallet balance or payment is displayed here.
           </p>
           <Link href="/account" className="button button-dark">
             Open account settings <ArrowRight size={15} />
@@ -2168,9 +2163,9 @@ function Storefront() {
         <div className="footer-top">
           <Logo />
           <p>
-            Useful objects, quiet details,
+            The official Neweix store.
             <br />
-            and the small upgrades that last.
+            One ecosystem. Connected experiences.
           </p>
           <Link href="/shop" className="button button-outline">
             Shop the edit <ArrowUpRight size={15} />
@@ -2179,10 +2174,10 @@ function Storefront() {
         <div className="footer-columns">
           <div>
             <span className="eyebrow">Explore</span>
-            <Link href="/shop">Shop</Link>
+            <Link href="/shop">Shop all</Link>
             <Link href="/wishlist">Wishlist</Link>
             <Link href="/neweix-plus">Neweix+</Link>
-            <Link href="/eixverse">eixverse</Link>
+            <a href="https://www.neweix.com/services">Neweix ecosystem</a>
           </div>
           <div>
             <span className="eyebrow">Support</span>
@@ -2205,9 +2200,9 @@ function Storefront() {
           </div>
         </div>
         <div className="footer-bottom">
-          <span>© 2026 NEWEIX</span>
-          <span>Made for modern Bangladesh</span>
-          <span>English · বাংলা ready</span>
+          <span>© 2026 Neweix</span>
+          <a href="https://www.neweix.com">neweix.com</a>
+          <span>Part of the Neweix ecosystem</span>
         </div>
       </footer>
       <MobileNav cartItems={cart} wishlistCount={wishlist.length} />
