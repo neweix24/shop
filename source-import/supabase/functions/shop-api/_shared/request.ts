@@ -1,5 +1,6 @@
-export function isGuestCodCheckoutEnabled(value: string | undefined): boolean {
-  return value === "true";
+/** COD is not an approved Shop payment method. No environment flag may enable it. */
+export function isGuestCodCheckoutEnabled(): boolean {
+  return false;
 }
 
 export async function readBoundedJson(
