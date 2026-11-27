@@ -1,3 +1,5 @@
+> **Historical audit snapshot, dated 2026-11-26.** This document records the state observed at that time and is not the current release status. It is superseded for current deployment facts by [application/PRODUCTION-READINESS.md](../application/PRODUCTION-READINESS.md), last verified 2026-11-27, and for governance/payment policy by the [Supreme Ecosystem Governance Charter](https://github.com/neweix24/supreme/blob/main/docs/ecosystem-governance-charter.md). The 2026-11-27 Worker deployment now serves the static Storefront; `/api` still returns HTTP 503 and checkout remains disabled. Current Shop payment policy is Eixon-only; COD is not permitted.
+
 # Neweix Shop — ecosystem research and remediation baseline
 
 **Audit date:** 2026-11-26  
