@@ -71,9 +71,8 @@ Deno.test("rejects malformed UTF-8", async () => {
   assert(value === null, "Expected malformed UTF-8 to be rejected");
 });
 
-Deno.test("guest COD checkout is enabled only by the exact true flag", () => {
-  assert(isGuestCodCheckoutEnabled("true"), "Expected true to enable checkout");
-  assert(!isGuestCodCheckoutEnabled(undefined), "Missing flag must be disabled");
-  assert(!isGuestCodCheckoutEnabled("false"), "False must be disabled");
-  assert(!isGuestCodCheckoutEnabled("TRUE"), "Unexpected casing must be disabled");
+Deno.test("COD remains disabled regardless of environment configuration", () => {
+  assert(!isGuestCodCheckoutEnabled(), "COD must remain disabled");
+  // The helper intentionally accepts no environment value, so runtime flags
+  // cannot bypass the Eixon-only payment policy.
 });
