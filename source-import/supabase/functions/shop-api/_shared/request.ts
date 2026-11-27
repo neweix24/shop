@@ -1,8 +1,3 @@
-/** COD is not an approved Shop payment method. No environment flag may enable it. */
-export function isGuestCodCheckoutEnabled(): boolean {
-  return false;
-}
-
 export async function readBoundedJson(
   request: Request,
   maxBytes = 16_384,
