@@ -6,9 +6,10 @@ import {
   SHOP_CHECKOUT_RELEASE_BLOCKERS,
 } from "./feature-flags";
 
-test("guest COD remains disabled in this code release", () => {
+test("COD is never an enabled Shop payment method", () => {
   assert.equal(isGuestCodCheckoutEnabled(), false);
-  assert.equal(getGuestCheckoutStatus().guestCodCheckoutEnabled, false);
+  assert.equal(getGuestCheckoutStatus().checkoutEnabled, false);
+  assert.equal(getGuestCheckoutStatus().paymentPolicy, "eixon_only");
   assert.equal(getGuestCheckoutStatus().status, "disabled");
 });
 
@@ -17,15 +18,16 @@ test("runtime configuration cannot bypass the source release gate", () => {
   process.env.SHOP_GUEST_CHECKOUT_ENABLED = "true";
   try {
     assert.equal(isGuestCodCheckoutEnabled(), false);
+    assert.equal(getGuestCheckoutStatus().checkoutEnabled, false);
   } finally {
     if (original === undefined) delete process.env.SHOP_GUEST_CHECKOUT_ENABLED;
     else process.env.SHOP_GUEST_CHECKOUT_ENABLED = original;
   }
 });
 
-test("checkout status names the unresolved release prerequisites", () => {
+test("checkout status names the unresolved Eixon and operational prerequisites", () => {
   assert.deepEqual(getGuestCheckoutStatus().blockers, [
-    "authoritative_payment_policy",
+    "eixon_shop_payment_contract",
     "supreme_approved_admin_grant",
     "order_review_cancellation_and_audit",
     "reserved_inventory_release",
